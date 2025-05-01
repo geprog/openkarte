@@ -1,0 +1,13 @@
+image: gitpod/workspace-full-vnc:latest
+
+tasks:
+  - name: Prepare node version
+    before: |
+      nvm install 22
+      nvm use 22
+      corepack install
+      corepack enable pnpm
+      pnpm install
+      nvm alias default 22
+      echo "nvm use default &>/dev/null" >> ~/.bashrc.d/51-nvm-fix
+    command: pnpm dev

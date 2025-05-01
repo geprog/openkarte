@@ -1,0 +1,26 @@
+{
+  "version": "0.2",
+  "import": ["@cspell/dict-de-de/cspell-ext.json"],
+  "language": "en",
+  "ignorePaths": [
+    "pnpm-lock.yml",
+    ".vscode/settings.json",
+    ".cspell.json",
+    ".nuxt",
+    "pnpm-lock.yaml"
+  ],
+  "words": [
+    "dprint",
+    "geprog",
+    "nuxt",
+    "nuxtjs"
+  ],
+  "overrides": [
+    {
+      "filename": ["i18n/locales/de.json"],
+      "language": "de,en",
+      "words": [
+      ]
+    }
+  ]
+}
