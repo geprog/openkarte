@@ -3,12 +3,12 @@ type classificationEntry = Record<string, string>;
 type measurementEntry = Record<string, string>;
 type seasonalEntry = Record<string, string>;
 type infrastructureEntry = Record<string, string>;
-export type MergedData = {
-  bathing: bathingEntry;
-  classification: classificationEntry | null;
-  measurements: measurementEntry[];
-  seasonal: seasonalEntry | null;
-  infrastructure: infrastructureEntry | null;
+export interface MergedData {
+  bathing: bathingEntry
+  classification: classificationEntry | null
+  measurements: measurementEntry[]
+  seasonal: seasonalEntry | null
+  infrastructure: infrastructureEntry | null
 }
 
 const headerMap = {
@@ -122,7 +122,7 @@ async function fetchAndParseCSV(csvUrl: string, headers: string[]): Promise<bath
   });
 }
 
-export async function fetchData(): Promise<MergedData[]>  {
+export async function fetchData(): Promise<MergedData[]> {
   try {
     const [bathingCsvUrl, classificationCsvUrl, measurementCsvUrl, seasonalCsvUrl, infrastructureCsvUrl] = await Promise.all([
       getCsvUrl(dataUrls.bathing),

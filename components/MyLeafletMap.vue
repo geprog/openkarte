@@ -3,17 +3,17 @@
 </template>
 
 <script setup lang="ts">
+import type { MergedData } from '~/components/FetchOpenData';
 import L, { Control } from 'leaflet';
 import { onMounted, ref, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-import type { MergedData } from '~/components/FetchOpenData';
 
 // Props
 const props = defineProps<{
-  waterBodies: MergedData[],
-  featureDisplay: ""
+  waterBodies: MergedData[]
+  featureDisplay: ''
 }>();
 
 const map = ref<HTMLDivElement | null>(null);
@@ -22,13 +22,13 @@ let leafletMap: L.Map | null = null;
 
 function getColor(classification: string): string {
   const colorMap: Record<string, string> = {
-    'ausgezeichnet (ï¿½berprï¿½fung nur bei ï¿½nderung der Einstufung)': '#4CAF50',  // Excellent (Green)
-    'gut (ï¿½berprï¿½fung mindestens alle vier Jahre)': '#2196F3',            // Good (Blue)
-    'ausreichend (ï¿½berprï¿½fung mindestens alle 3 J)': '#FFEB3B',     // Sufficient (Yellow)
-    'mangelhaft (ï¿½berprï¿½fung mindestens alle 2 J)': '#F44336',      // Inadequate (Red)
-    'changes': '#FF9800',         // Changes (Orange)
-    'neu': '#9C27B0',             // New (Purple)
-    'ohne Bewertung': '#9E9E9E'   // Without rating (Grey)
+    'ausgezeichnet (ï¿½berprï¿½fung nur bei ï¿½nderung der Einstufung)': '#4CAF50', // Excellent (Green)
+    'gut (ï¿½berprï¿½fung mindestens alle vier Jahre)': '#2196F3', // Good (Blue)
+    'ausreichend (ï¿½berprï¿½fung mindestens alle 3 J)': '#FFEB3B', // Sufficient (Yellow)
+    'mangelhaft (ï¿½berprï¿½fung mindestens alle 2 J)': '#F44336', // Inadequate (Red)
+    'changes': '#FF9800', // Changes (Orange)
+    'neu': '#9C27B0', // New (Purple)
+    'ohne Bewertung': '#9E9E9E', // Without rating (Grey)
   };
   return colorMap[classification] || '#999999'; // default color
 }
@@ -50,7 +50,7 @@ function createLegend(classifications: string[]) {
   return legend;
 }
 function renderMarkers(data: typeof props.waterBodies) {
-  if (!leafletMap){
+  if (!leafletMap) {
     return;
   }
 
@@ -89,7 +89,7 @@ onMounted(() => {
   if (props.waterBodies && props.waterBodies.length > 0) {
     renderMarkers(props.waterBodies);
   }
-  if (props.featureDisplay && props.featureDisplay == "") {
+  if (props.featureDisplay && props.featureDisplay === '') {
     renderMarkers(props.waterBodies);
   }
 });
@@ -100,8 +100,8 @@ watch(() => props.waterBodies, (newData) => {
     const classifications = [
       ...new Set(
         props.waterBodies
-          .map((w) => w.classification?.EINSTUFUNG_ODER_VORABBEWERTUNG)
-          .filter((value): value is string => value !== undefined)
+          .map(w => w.classification?.EINSTUFUNG_ODER_VORABBEWERTUNG)
+          .filter((value): value is string => value !== undefined),
       ),
     ];
 

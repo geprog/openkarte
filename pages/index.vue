@@ -48,36 +48,36 @@
       </aside>
 
       <main class="flex-1 relative z-10">
-        <MyLeafletMap :water-bodies="bathingWaterData" :feature-display="feature"/>
+        <MyLeafletMap :water-bodies="bathingWaterData" :feature-display="feature" />
       </main>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { MergedData } from '~/components/FetchOpenData';
 import { ref } from 'vue';
 import { fetchData } from '~/components/FetchOpenData';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
-import type { MergedData } from '~/components/FetchOpenData';
 
 const sidebarOpen = ref(false);
 const bathingWaterData = ref<MergedData[]>([]);
-const feature = ref("");
+const feature = ref('');
 
 async function fetchBathingQualityData() {
-  feature.value = "quality";
+  feature.value = 'quality';
 }
 async function fetchBathingCatagoryData() {
-  feature.value = "catagory";
+  feature.value = 'catagory';
 }
 async function fetchBathingDepthData() {
-  feature.value = "depth";
+  feature.value = 'depth';
 }
 async function fetchBathingSeasonalData() {
-  feature.value = "seasonal";
+  feature.value = 'seasonal';
 }
 async function fetchBathingInfrastructureData() {
-  feature.value = "infrastructure";
+  feature.value = 'infrastructure';
 }
 
 onMounted(async () => {
