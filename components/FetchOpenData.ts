@@ -6,7 +6,7 @@ type infrastructureEntry = Record<string, string>;
 export interface MergedData {
   bathing: bathingEntry
   classification: classificationEntry | null
-  measurements: measurementEntry[]
+  measurements: measurementEntry | null
   seasonal: seasonalEntry | null
   infrastructure: infrastructureEntry | null
 }
@@ -146,12 +146,20 @@ export async function fetchData(): Promise<MergedData[]> {
     const classificationMap = new Map<string, classificationEntry>();
     classificationData.forEach(row => classificationMap.set(row.BADEGEWAESSERID, row as classificationEntry));
 
-    const measurementMap = new Map<string, measurementEntry[]>();
+    const measurementMap = new Map<string, measurementEntry>();
     measurementData.forEach((row) => {
       const id = row.BADEGEWAESSERID;
-      if (!measurementMap.has(id))
-        measurementMap.set(id, []);
-      measurementMap.get(id)!.push(row as measurementEntry);
+      const currentDate = new Date(row.DATUMMESSUNG);
+      if (!measurementMap.has(id)) {
+        measurementMap.set(id, row);
+      }
+      else {
+        const existingEntry = measurementMap.get(id)!;
+        const existingDate = new Date(existingEntry.DATUM);
+        if (currentDate > existingDate) {
+          measurementMap.set(id, row);
+        }
+      }
     });
 
     const seasonalMap = new Map<string, seasonalEntry>();
@@ -166,7 +174,7 @@ export async function fetchData(): Promise<MergedData[]> {
       return {
         bathing: bathingRow,
         classification: classificationMap.get(id) || null,
-        measurements: measurementMap.get(id) || [],
+        measurements: measurementMap.get(id) || null,
         seasonal: seasonalMap.get(id) || null,
         infrastructure: infrastructureMap.get(id) || null,
       };

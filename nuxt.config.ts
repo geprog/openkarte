@@ -10,7 +10,7 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   app: {
     head: {
-      title: 'Nuxt Template',
+      title: 'OpenKarte',
       titleTemplate: '%s',
       charset: 'utf-8',
       viewport: 'width=device-width, initial-scale=1',
