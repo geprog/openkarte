@@ -34,45 +34,24 @@
         <ul class="space-y-2">
           <li
             class="cursor-pointer hover:text-blue-200"
-            :class="{ 'font-bold underline': feature === 'quality' }"
-            @click="setFeature('quality')"
+            :class="{ 'font-bold underline': feature === 'bathing' }"
+            @click="setFeature('bathing')"
           >
-            Bathing Water Quality
+            Bathing Water Data
           </li>
           <li
             class="cursor-pointer hover:text-blue-200"
-            :class="{ 'font-bold underline': feature === 'category' }"
-            @click="setFeature('category')"
+            :class="{ 'font-bold underline': feature === 'busStops' }"
+            @click="setFeature('busStops')"
           >
-            Bathing Water Category
-          </li>
-          <li
-            class="cursor-pointer hover:text-blue-200"
-            :class="{ 'font-bold underline': feature === 'depth' }"
-            @click="setFeature('depth')"
-          >
-            Bathing Water Depth
-          </li>
-          <li
-            class="cursor-pointer hover:text-blue-200"
-            :class="{ 'font-bold underline': feature === 'seasonal' }"
-            @click="setFeature('seasonal')"
-          >
-            Bathing Water Seasonal Status
-          </li>
-          <li
-            class="cursor-pointer hover:text-blue-200"
-            :class="{ 'font-bold underline': feature === 'infrastructure' }"
-            @click="setFeature('infrastructure')"
-          >
-            Bathing Water Infrastructure
+            Traffic Data
           </li>
         </ul>
       </aside>
 
       <main class="flex-1 relative">
-        <MyLeafletMap :water-bodies="bathingWaterData" :feature-display="feature" />
-        <div class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-slate-900 bg-opacity-80">
+        <MyLeafletMap :water-bodies="bathingWaterData" :bus-stops="busStopsData" :feature-display="feature" @marker-click="selectedItem = $event" />
+        <div v-if="feature === 'bathing'" class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-slate-900 bg-opacity-80">
           <div class="relative w-full h-2 rounded overflow-hidden">
             <div
               v-for="(group) in groupedDates"
@@ -110,6 +89,26 @@
             Selected Date: {{ selectedDate }}
           </div>
         </div>
+        <div
+          v-if="selectedItem"
+          class="absolute bottom-29 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-xl"
+        >
+          <div class="flex justify-between items-center">
+            <h2 class="text-lg font-bold text-white">
+              {{ selectedItem.bathing.BADEGEWAESSERNAME }}
+            </h2>
+            <button class="text-white text-xl" @click="selectedItem = null">
+              &times;
+            </button>
+          </div>
+          <ul class="mt-2 space-y-1 text-sm text-white">
+            <li><strong>Quality:</strong> {{ selectedItem.classification?.EINSTUFUNG_ODER_VORABBEWERTUNG || 'N/A' }}</li>
+            <li><strong>Category:</strong> {{ selectedItem.measurements?.GEWAESSERKATEGORIE || 'N/A' }}</li>
+            <li><strong>Depth:</strong> {{ selectedItem.measurements?.SICHTTIEFE || 'N/A' }}</li>
+            <li><strong>Seasonal:</strong> {{ selectedItem.seasonal?.GESCHLOSSEN || 'N/A' }}</li>
+            <li><strong>Infrastructure:</strong> {{ selectedItem.infrastructure?.INFRASTRUKTUR || 'N/A' }}</li>
+          </ul>
+        </div>
       </main>
     </div>
   </div>
@@ -117,8 +116,8 @@
 
 <script setup lang="ts">
 import type { MergedData } from '~/components/FetchOpenData';
-import { computed, onMounted, ref, watch } from 'vue';
-import { fetchData } from '~/components/FetchOpenData';
+import { computed, ref, watch } from 'vue';
+import { fetchBathData, fetchBusStopData } from '~/components/FetchOpenData';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
 
 const isSmallScreen = computed(() => {
@@ -126,7 +125,8 @@ const isSmallScreen = computed(() => {
 });
 const sidebarOpen = ref(false);
 const bathingWaterData = ref<MergedData[]>([]);
-type FeatureType = 'quality' | 'category' | 'depth' | 'seasonal' | 'infrastructure';
+const busStopsData = ref();
+type FeatureType = 'bathing' | 'busStops';
 const feature = ref<FeatureType | null>(null);
 
 const dateOptions = [
@@ -164,10 +164,10 @@ const dateOptions = [
 
 const selectedIndex = ref(0);
 const selectedDate = ref(dateOptions[selectedIndex.value]);
+const selectedItem = ref<MergedData | null>(null);
 
 const yearColors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
 
-// Group dates by year and calculate width and offset for each segment
 const groupedDates = computed(() => {
   const yearGroups = new Map<string, string[]>();
 
@@ -181,7 +181,6 @@ const groupedDates = computed(() => {
 
   const total = dateOptions.length;
   let offset = 0;
-  let index = 0;
 
   return Array.from(yearGroups.entries()).map(([year, dates], i) => {
     const width = (dates.length / total) * 100;
@@ -192,7 +191,6 @@ const groupedDates = computed(() => {
       color: yearColors[i % yearColors.length],
     };
     offset += width;
-    index++;
     return group;
   });
 });
@@ -202,11 +200,17 @@ function setFeature(f: FeatureType) {
   sidebarOpen.value = false;
 }
 watch(selectedIndex, async (newIndex) => {
+  selectedItem.value = null;
   selectedDate.value = dateOptions[newIndex];
-  bathingWaterData.value = await fetchData();
+  bathingWaterData.value = await fetchBathData(selectedDate);
 });
-onMounted(async () => {
-  bathingWaterData.value = await fetchData();
+watch(feature, async () => {
+  if (feature.value === 'bathing') {
+    bathingWaterData.value = await fetchBathData(selectedDate);
+  }
+  else if (feature.value === 'busStops') {
+    busStopsData.value = await fetchBusStopData();
+  }
 });
 </script>
 
@@ -216,24 +220,22 @@ onMounted(async () => {
   font-weight: 500;
 }
 /* Ensure the slider thumb and track are visible and styled correctly */
-input[type="range"] {
+input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 4px; /* Slider height */
+  height: 4px;
   background: transparent;
   position: relative;
   z-index: 2;
 }
-
 /* For Webkit-based browsers like Chrome and Safari */
-input[type="range"]::-webkit-slider-runnable-track {
+input[type='range']::-webkit-slider-runnable-track {
   height: 4px;
   background: transparent;
   border-radius: 9999px;
 }
-
-input[type="range"]::-webkit-slider-thumb {
+input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 20px;
@@ -246,9 +248,8 @@ input[type="range"]::-webkit-slider-thumb {
   z-index: 10;
   margin-top: -27px; /* Push thumb up above the track */
 }
-
 /* For Firefox */
-input[type="range"]::-moz-range-thumb {
+input[type='range']::-moz-range-thumb {
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -256,5 +257,4 @@ input[type="range"]::-moz-range-thumb {
   border: 2px solid #0f172b;
   cursor: pointer;
 }
-
 </style>
