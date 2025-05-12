@@ -19,7 +19,7 @@
         <span class="text-lg font-semibold">{{ t('openMap') }}</span>
       </div>
       <div class="px-4">
-        <select class="text-white rounded py-1" @click="(event) => setLocale(event)">
+        <select v-model="locale" class="text-white rounded py-1">
           <option value="en">
             English
           </option>
@@ -150,7 +150,7 @@ import MyLeafletMap from '~/components/MyLeafletMap.vue';
 import { fetchBathData, fetchBusStopData, fetchLakesData } from '~/composables/useFetchOpenData';
 // import layout from '/layout.json';
 
-const { t, setLocale } = useI18n();
+const { t, locale, setLocale } = useI18n();
 
 const isSmallScreen = computed(() => {
   return window.innerWidth < 768;
@@ -291,7 +291,7 @@ watch(selectedIndex, async (newIndex) => {
   bathingWaterData.value = await fetchBathData(selectedDate);
 });
 watch(selectedLakeDateIndex, async (newIndex) => {
-  selectedLakeDate.value = lakeDateOptions.value[newIndex]?.toISOString().split('T')[0] || ''; ;
+  selectedLakeDate.value = lakeDateOptions.value[newIndex]?.toISOString().split('T')[0] || '';
 });
 watch(feature, async () => {
   if (feature.value === 'bathing') {
@@ -304,6 +304,9 @@ watch(feature, async () => {
     lakeData.value = await fetchLakesData();
     setLakeDepth();
   }
+});
+watch(locale, (newLocale) => {
+  setLocale(newLocale);
 });
 </script>
 
