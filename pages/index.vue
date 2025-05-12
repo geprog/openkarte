@@ -16,7 +16,17 @@
             />
           </svg>
         </button>
-        <span class="text-lg font-semibold">Open Karte</span>
+        <span class="text-lg font-semibold">{{ t('openMap') }}</span>
+      </div>
+      <div class="px-4">
+        <select v-model="locale" class="text-white rounded py-1">
+          <option value="en">
+            English
+          </option>
+          <option value="de">
+            Deutsch
+          </option>
+        </select>
       </div>
     </header>
 
@@ -26,7 +36,7 @@
         class="bg-blue w-64 border-r p-4 overflow-y-auto transition-all duration-300"
       >
         <div class="flex justify-between items-center font-semibold text-lg mb-4">
-          <h3>Map Display Options</h3>
+          <h3>{{ t('mapDisplayOption') }}</h3>
           <button class="text-lg" @click="sidebarOpen = false">
             &times;
           </button>
@@ -37,20 +47,27 @@
             :class="{ 'font-bold underline': feature === 'bathing' }"
             @click="setFeature('bathing')"
           >
-            Bathing Water Data
+            {{ t('bathingWater') }}
           </li>
           <li
             class="cursor-pointer hover:text-blue-200"
             :class="{ 'font-bold underline': feature === 'busStops' }"
             @click="setFeature('busStops')"
           >
-            Traffic Data
+            {{ t('BusStopData') }}
+          </li>
+          <li
+            class="cursor-pointer hover:text-blue-200"
+            :class="{ 'font-bold underline': feature === 'lakeData' }"
+            @click="setFeature('lakeData')"
+          >
+            {{ t('lakesData') }}
           </li>
         </ul>
       </aside>
 
       <main class="flex-1 relative">
-        <MyLeafletMap :water-bodies="bathingWaterData" :bus-stops="busStopsData" :feature-display="feature" @marker-click="selectedItem = $event" />
+        <MyLeafletMap :water-bodies="bathingWaterData" :bus-stops="busStopsData" :lake-data="lakeData" :feature-display="feature" :selected-lake-date="selectedLakeDate" @marker-click="selectedItem = $event" />
         <div v-if="feature === 'bathing'" class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-slate-900 bg-opacity-80">
           <div class="relative w-full h-2 rounded overflow-hidden">
             <div
@@ -69,7 +86,7 @@
             type="range"
             :min="0"
             :max="dateOptions.length - 1"
-            class="w-full relative z-10 appearance-none"
+            class="custom-slider w-full relative z-10"
           >
           <div class="relative w-full h-5">
             <span
@@ -89,9 +106,21 @@
             Selected Date: {{ selectedDate }}
           </div>
         </div>
+        <div v-if="feature === 'lakeData'" class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-slate-900 bg-opacity-80">
+          <input
+            v-model="selectedLakeDateIndex"
+            type="range"
+            :min="0"
+            :max="lakeDateOptions.length - 1"
+            class="w-full relative z-10"
+          >
+          <div class="mt-2 text-center text-white font-semibold">
+            Selected Date: {{ selectedLakeDate }}
+          </div>
+        </div>
         <div
           v-if="selectedItem"
-          class="absolute bottom-29 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-xl"
+          class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-xl"
         >
           <div class="flex justify-between items-center">
             <h2 class="text-lg font-bold text-white">
@@ -102,11 +131,11 @@
             </button>
           </div>
           <ul class="mt-2 space-y-1 text-sm text-white">
-            <li><strong>Quality:</strong> {{ selectedItem.classification?.EINSTUFUNG_ODER_VORABBEWERTUNG || 'N/A' }}</li>
-            <li><strong>Category:</strong> {{ selectedItem.measurements?.GEWAESSERKATEGORIE || 'N/A' }}</li>
-            <li><strong>Depth:</strong> {{ selectedItem.measurements?.SICHTTIEFE || 'N/A' }}</li>
-            <li><strong>Seasonal:</strong> {{ selectedItem.seasonal?.GESCHLOSSEN || 'N/A' }}</li>
-            <li><strong>Infrastructure:</strong> {{ selectedItem.infrastructure?.INFRASTRUKTUR || 'N/A' }}</li>
+            <li><strong>{{ t('quality') }}:</strong> {{ selectedItem.classification?.EINSTUFUNG_ODER_VORABBEWERTUNG || 'N/A' }}</li>
+            <li><strong>{{ t('category') }}:</strong> {{ selectedItem.measurements?.GEWAESSERKATEGORIE || 'N/A' }}</li>
+            <li><strong>{{ t('depth') }}:</strong> {{ selectedItem.measurements?.SICHTTIEFE || 'N/A' }}</li>
+            <li><strong>{{ t('seasonal') }}:</strong> {{ selectedItem.seasonal?.SAISONBEGINN }} - {{ selectedItem.seasonal?.SAISONENDE }} {{ selectedItem.seasonal?.GESCHLOSSEN || 'N/A' }} </li>
+            <li><strong>{{ t('infrastructure') }}:</strong> {{ selectedItem.infrastructure?.INFRASTRUKTUR || 'N/A' }}</li>
           </ul>
         </div>
       </main>
@@ -115,10 +144,13 @@
 </template>
 
 <script setup lang="ts">
-import type { MergedData } from '~/components/FetchOpenData';
+import type { MergedData } from '~/composables/useFetchOpenData';
 import { computed, ref, watch } from 'vue';
-import { fetchBathData, fetchBusStopData } from '~/components/FetchOpenData';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
+import { fetchBathData, fetchBusStopData, fetchLakesData } from '~/composables/useFetchOpenData';
+// import layout from '/layout.json';
+
+const { t, locale } = useI18n();
 
 const isSmallScreen = computed(() => {
   return window.innerWidth < 768;
@@ -126,45 +158,50 @@ const isSmallScreen = computed(() => {
 const sidebarOpen = ref(false);
 const bathingWaterData = ref<MergedData[]>([]);
 const busStopsData = ref();
-type FeatureType = 'bathing' | 'busStops';
+const lakeData = ref();
+type FeatureType = 'bathing' | 'busStops' | 'lakeData';
 const feature = ref<FeatureType | null>(null);
-
 const dateOptions = [
-  '2025-04-01',
-  '2024-11-01',
-  '2024-06-01',
-  '2024-05-01',
-  '2023-11-01',
-  '2023-10-01',
-  '2023-08-01',
-  '2023-07-01',
-  '2023-06-01',
-  '2023-03-01',
-  '2022-12-01',
-  '2022-09-01',
-  '2022-08-01',
-  '2022-07-01',
-  '2022-06-01',
-  '2022-05-01',
-  '2022-04-01',
-  '2021-08-14',
-  '2021-08-06',
-  '2021-07-17',
-  '2021-07-03',
-  '2021-07-01',
-  '2021-06-16',
-  '2021-05-18',
-  '2021-05-07',
-  '2021-05-05',
-  '2021-05-01',
-  '2021-04-24',
-  '2021-03-01',
   '2021-02-10',
+  '2021-03-01',
+  '2021-04-24',
+  '2021-05-01',
+  '2021-05-05',
+  '2021-05-07',
+  '2021-05-18',
+  '2021-06-16',
+  '2021-07-01',
+  '2021-07-03',
+  '2021-07-17',
+  '2021-08-06',
+  '2021-08-14',
+  '2022-04-01',
+  '2022-05-01',
+  '2022-06-01',
+  '2022-07-01',
+  '2022-08-01',
+  '2022-09-01',
+  '2022-12-01',
+  '2023-03-01',
+  '2023-06-01',
+  '2023-07-01',
+  '2023-08-01',
+  '2023-10-01',
+  '2023-11-01',
+  '2024-05-01',
+  '2024-06-01',
+  '2024-11-01',
+  '2025-04-01',
 ];
 
 const selectedIndex = ref(0);
 const selectedDate = ref(dateOptions[selectedIndex.value]);
 const selectedItem = ref<MergedData | null>(null);
+let globalMinDate: Date | null = null;
+let globalMaxDate: Date | null = null;
+const selectedLakeDateIndex = ref(0);
+const selectedLakeDate = ref('');
+const lakeDateOptions = ref<Date[]>([]);
 
 const yearColors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
 
@@ -199,10 +236,62 @@ function setFeature(f: FeatureType) {
   feature.value = f;
   sidebarOpen.value = false;
 }
+function setLakeDepth() {
+  lakeData.value.forEach((feature) => {
+    if (Array.isArray(feature.lakeDepth) && feature.lakeDepth.length > 0) {
+      const dates = feature.lakeDepth
+        .map((entry) => {
+          const [datePart] = entry.Zeit.split(' ');
+          const parsedDate = new Date(datePart);
+          return parsedDate;
+        });
+      if (dates.length > 0) {
+        const minDate = new Date(Math.min(...dates));
+        const maxDate = new Date(Math.max(...dates));
+        if (!globalMinDate || minDate < globalMinDate)
+          globalMinDate = minDate;
+        if (!globalMaxDate || maxDate > globalMaxDate)
+          globalMaxDate = maxDate;
+      }
+    }
+  });
+  // globalMinDate.setFullYear(globalMinDate.getFullYear() + 1);
+  // globalMinDate.setDate(globalMinDate.getDate() + 1);
+  // globalMaxDate.setDate(globalMaxDate.getDate() + 1);
+  // console.log(globalMinDate,globalMaxDate)
+  if (globalMinDate && globalMaxDate) {
+    const dates = [];
+    const min = new Date(
+      globalMinDate.getFullYear(),
+      globalMinDate.getMonth(),
+      globalMinDate.getDate(),
+    );
+
+    const max = new Date(
+      globalMaxDate.getFullYear(),
+      globalMaxDate.getMonth(),
+      globalMaxDate.getDate(),
+    );
+    const current = new Date(min);
+    // eslint-disable-next-line no-unmodified-loop-condition
+    while (current <= max) {
+      dates.push(new Date(current.getFullYear(), current.getMonth(), current.getDate()));
+      current.setDate(current.getDate() + 1);
+    }
+    lakeDateOptions.value = dates;
+  }
+  else {
+    lakeDateOptions.value = [];
+  }
+  selectedLakeDate.value = lakeDateOptions.value[selectedLakeDateIndex.value]?.toLocaleDateString('en-CA') || '';
+}
 watch(selectedIndex, async (newIndex) => {
   selectedItem.value = null;
   selectedDate.value = dateOptions[newIndex];
   bathingWaterData.value = await fetchBathData(selectedDate);
+});
+watch(selectedLakeDateIndex, async (newIndex) => {
+  selectedLakeDate.value = lakeDateOptions.value[newIndex]?.toISOString().split('T')[0] || ''; ;
 });
 watch(feature, async () => {
   if (feature.value === 'bathing') {
@@ -210,6 +299,10 @@ watch(feature, async () => {
   }
   else if (feature.value === 'busStops') {
     busStopsData.value = await fetchBusStopData();
+  }
+  else if (feature.value === 'lakeData') {
+    lakeData.value = await fetchLakesData();
+    setLakeDepth();
   }
 });
 </script>
@@ -219,8 +312,8 @@ watch(feature, async () => {
   white-space: nowrap;
   font-weight: 500;
 }
-/* Ensure the slider thumb and track are visible and styled correctly */
-input[type='range'] {
+
+.custom-slider {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
@@ -229,13 +322,14 @@ input[type='range'] {
   position: relative;
   z-index: 2;
 }
-/* For Webkit-based browsers like Chrome and Safari */
-input[type='range']::-webkit-slider-runnable-track {
+
+.custom-slider::-webkit-slider-runnable-track {
   height: 4px;
   background: transparent;
   border-radius: 9999px;
 }
-input[type='range']::-webkit-slider-thumb {
+
+.custom-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 20px;
@@ -246,10 +340,10 @@ input[type='range']::-webkit-slider-thumb {
   cursor: pointer;
   position: relative;
   z-index: 10;
-  margin-top: -27px; /* Push thumb up above the track */
+  margin-top: -27px;
 }
-/* For Firefox */
-input[type='range']::-moz-range-thumb {
+
+.custom-slider::-moz-range-thumb {
   width: 20px;
   height: 20px;
   border-radius: 50%;

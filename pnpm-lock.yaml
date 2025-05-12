@@ -29,6 +29,9 @@ importers:
       proj4:
         specifier: ^2.15.0
         version: 2.15.0
+      shpjs:
+        specifier: ^6.1.0
+        version: 6.1.0
       tailwindcss:
         specifier: 4.1.5
         version: 4.1.5
@@ -2497,6 +2500,9 @@ packages:
     resolution: {integrity: sha512-tjwM5exMg6BGRI+kNmTntNsvdZS1X8BFYS6tnJ2hdH0kVxM6/eVZ2xy+FqStSWvYmtfFMDLIxurorHwDKfDz5Q==}
     engines: {node: '>=18'}
 
+  but-unzip@0.1.4:
+    resolution: {integrity: sha512-Q5/55MTk0PHjxtYyZBbhIVMJP0+FNc/AOKBrrnqaxnbJR4I7w+R4CMRNYMxUQrKmCLrih7D1p4/nwZHMn7IToA==}
+
   c12@3.0.3:
     resolution: {integrity: sha512-uC3MacKBb0Z15o5QWCHvHWj5Zv34pGQj9P+iXKSpTuSGFS0KKhUWf4t9AJ+gWjYOdmWCPEGpEzm8sS0iqbpo1w==}
     peerDependencies:
@@ -4651,6 +4657,9 @@ packages:
     resolution: {integrity: sha512-bCgsFI+GeGWPAvAiUv63ZorMeif3/U0zaXABGJbOWt5OH2KCaPHF6S+0ok4aqM9RuIPGyZdx9tR9l13PsW4AYQ==}
     engines: {node: '>=14.13.0'}
 
+  parsedbf@2.0.0:
+    resolution: {integrity: sha512-WNjKn/cwgGBkXqQLif+2VMEahcRHkBRU0/RfBWZ7Vj7snRNNW63yW1mVuuHRDyXTRxuGCzAHHBcr/Fn+U/bXjQ==}
+
   parseurl@1.3.3:
     resolution: {integrity: sha512-CiyeOxFT/JZyN5m0z9PfXw4SCBJ6Sygz1Dpl0wqjlhDEGGBP1GnsUVEL0p63hoG1fcj3fHynXi9NYO4nWOL+qQ==}
     engines: {node: '>= 0.8'}
@@ -5182,6 +5191,9 @@ packages:
   shell-quote@1.8.2:
     resolution: {integrity: sha512-AzqKpGKjrj7EM6rKVQEPpB288oCfnrEIuyoT9cyF4nmGa7V8Zk6f7RRqYisX8X9m+Q7bd632aZW4ky7EhbQztA==}
     engines: {node: '>= 0.4'}
+
+  shpjs@6.1.0:
+    resolution: {integrity: sha512-uaUpod7uIWetJK80yiiedZ3x4z9ZAPgDVT89N27+8F97Z8ZOqmu88P96I6CBC8N+YyERqdneZNT/wNFUEnzNpw==}
 
   side-channel-list@1.0.0:
     resolution: {integrity: sha512-FCLHtRD/gnpCiCHEiJLOwdmFP+wzCmDEkc9y7NsYxeF4u7Btsn1ZuwgwJGxImImHicJArLP4R0yX4c2KCrMrTA==}
@@ -8696,6 +8708,8 @@ snapshots:
     dependencies:
       run-applescript: 7.0.0
 
+  but-unzip@0.1.4: {}
+
   c12@3.0.3(magicast@0.3.5):
     dependencies:
       chokidar: 4.0.3
@@ -11344,6 +11358,8 @@ snapshots:
       '@types/parse-path': 7.0.3
       parse-path: 7.0.0
 
+  parsedbf@2.0.0: {}
+
   parseurl@1.3.3: {}
 
   path-browserify@1.0.1: {}
@@ -11900,6 +11916,12 @@ snapshots:
   shebang-regex@3.0.0: {}
 
   shell-quote@1.8.2: {}
+
+  shpjs@6.1.0:
+    dependencies:
+      but-unzip: 0.1.4
+      parsedbf: 2.0.0
+      proj4: 2.15.0
 
   side-channel-list@1.0.0:
     dependencies:

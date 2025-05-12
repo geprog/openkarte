@@ -93,36 +93,42 @@ const dataUrls = {
   seasonal: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=badegewasser-saisondauer',
   infrastructure: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=badegewasser-infrastruktur-aktuell',
   busStops: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=bushaltestelle',
+  lake: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=see-wasserkorper',
+  hemmelsdorfer: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-hemmelsdorfer-see-hemmelsdorfer-see1',
+  hemmelmarker: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-hemmelmarker-see',
+  kellersee: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-kellersee-kellersee1',
+  postsee: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-postsee-postsee1',
+
 };
 
-async function getCsvUrl(apiUrl: string): Promise<string | null> {
+async function getUrl(apiUrl: string, type: string): Promise<string | null> {
   const response = await fetch(apiUrl);
   const data = await response.json();
+  let rawUrl = '';
   if (data.success) {
-    const rawUrl = data.result.resources.find(
-      (res: any) => res.format === 'CSV' || res.mimetype === 'text/csv',
-    )?.url;
-
+    if (type === 'csv') {
+      rawUrl = data.result.resources.find(
+        (res: any) => res.format === 'CSV' || res.mimetype === 'text/csv',
+      )?.url;
+    }
+    else if (type === 'json') {
+      rawUrl = data.result.resources.find(
+        (res: any) => res.format === 'GeoJSON' || res.mimetype === 'json',
+      )?.url;
+    }
+    else if (type === 'shp') {
+      rawUrl = data.result.resources.find(
+        (res: any) => res.format === 'SHP' || res.mimetype === 'application/zip',
+      )?.url;
+    }
+    else {
+      console.error('unsupported file type');
+    }
     if (rawUrl) {
       return rawUrl.replace(/^http:/, 'https:');
     }
   }
-  console.error('Failed to get CSV URL:', data.error);
-  return null;
-}
-async function getGeoJsonUrl(apiUrl: string): Promise<string | null> {
-  const response = await fetch(apiUrl);
-  const data = await response.json();
-  if (data.success) {
-    const rawUrl = data.result.resources.find(
-      (res: any) => res.format === 'GeoJSON' || res.mimetype === 'json',
-    )?.url;
-
-    if (rawUrl) {
-      return rawUrl.replace(/^http:/, 'https:');
-    }
-  }
-  console.error('Failed to get GEOJson URL:', data.error);
+  console.error('Failed to get URL:', data.error);
   return null;
 }
 async function fetchAndParseCSV(csvUrl: string, headers: string[]): Promise<bathingEntry[]> {
@@ -133,18 +139,39 @@ async function fetchAndParseCSV(csvUrl: string, headers: string[]): Promise<bath
   const csvText = decoder.decode(arrayBuffer);
 
   const rows = csvText.trim().split('\n');
-  return rows.map((line) => {
-    const values = line.split('|').map(v => v.replace(/^"|"$/g, '').trim());
-    const entry: bathingEntry = {};
-    headers.forEach((key, i) => {
-      entry[key] = values[i] ?? '';
+  if (headers) {
+    return rows.map((line) => {
+      const values = line.split('|').map(v => v.replace(/^"|"$/g, '').trim());
+      const entry: bathingEntry = {};
+      headers.forEach((key, i) => {
+        entry[key] = values[i] ?? '';
+      });
+      return entry;
     });
-    return entry;
-  });
+  }
+  else {
+    const headerLine = rows.shift();
+    if (!headerLine)
+      return [];
+
+    const detectedHeaders = headerLine.split(';').map(v => v.replace(/^"|"$/g, '').trim());
+
+    return rows.map((line) => {
+      const values = line.split(';').map(v => v.replace(/^"|"$/g, '').trim());
+      const entry: bathingEntry = {};
+      detectedHeaders.forEach((key, i) => {
+        entry[key] = values[i] ?? '';
+      });
+      return entry;
+    });
+  }
 }
 async function fetchAndParseGeoJson(geoJsonUrl: string) {
   const proxyUrl = `/api/proxy-csv?url=${encodeURIComponent(geoJsonUrl)}`;
   const response = await fetch(proxyUrl).then(res => res.json());
+  if (geoJsonUrl.toLowerCase().endsWith('.zip')) {
+    return response;
+  }
   const reprojectedCoordinatesData = reprojectGeoJSON(response);
   return reprojectedCoordinatesData;
 }
@@ -175,16 +202,15 @@ function reprojectGeoJSON(geojson) {
   };
 }
 
-
 export async function fetchBathData(selectedDate: Date): Promise<MergedData[]> {
   try {
     dataUrls.bathing = `https://opendata.schleswig-holstein.de/api/action/package_show?id=badegewasser-stammdaten-${selectedDate.value}`;
     const [bathingCsvUrl, classificationCsvUrl, measurementCsvUrl, seasonalCsvUrl, infrastructureCsvUrl] = await Promise.all([
-      getCsvUrl(dataUrls.bathing),
-      getCsvUrl(dataUrls.classification),
-      getCsvUrl(dataUrls.measurement),
-      getCsvUrl(dataUrls.seasonal),
-      getCsvUrl(dataUrls.infrastructure),
+      getUrl(dataUrls.bathing, 'csv'),
+      getUrl(dataUrls.classification, 'csv'),
+      getUrl(dataUrls.measurement, 'csv'),
+      getUrl(dataUrls.seasonal, 'csv'),
+      getUrl(dataUrls.infrastructure, 'csv'),
     ]);
 
     if (!bathingCsvUrl || !classificationCsvUrl || !measurementCsvUrl || !seasonalCsvUrl || !infrastructureCsvUrl)
@@ -199,7 +225,12 @@ export async function fetchBathData(selectedDate: Date): Promise<MergedData[]> {
     ]);
 
     const classificationMap = new Map<string, classificationEntry>();
-    classificationData.forEach(row => classificationMap.set(row.BADEGEWAESSERID, row as classificationEntry));
+    classificationData.forEach((row) => {
+      if (row.EINSTUFUNG_ODER_VORABBEWERTUNG === '---') {
+        row.EINSTUFUNG_ODER_VORABBEWERTUNG = 'ohne Bewertung';
+      }
+      classificationMap.set(row.BADEGEWAESSERID, row as classificationEntry);
+    });
 
     const measurementMap = new Map<string, measurementEntry>();
     measurementData.forEach((row) => {
@@ -245,7 +276,7 @@ export async function fetchBathData(selectedDate: Date): Promise<MergedData[]> {
 export async function fetchBusStopData() {
   try {
     const [busStopGeoJsonUrl] = await Promise.all([
-      getGeoJsonUrl(dataUrls.busStops),
+      getUrl(dataUrls.busStops, 'json'),
     ]);
 
     if (!busStopGeoJsonUrl)
@@ -258,6 +289,67 @@ export async function fetchBusStopData() {
   }
   catch (err) {
     console.error('Failed to fetch:', err);
+    return [];
+  }
+}
+
+export async function fetchLakesData() {
+  try {
+    const [lakeWaterShpUrl, hemmelsdorferCsvUrl, hemmelmarkerCsvUrl, kellerseeCsvUrl, postseeCsvUrl] = await Promise.all([
+      getUrl(dataUrls.lake, 'shp'),
+      getUrl(dataUrls.hemmelsdorfer, 'csv'),
+      getUrl(dataUrls.hemmelmarker, 'csv'),
+      getUrl(dataUrls.kellersee, 'csv'),
+      getUrl(dataUrls.postsee, 'csv'),
+    ]);
+
+    if (!lakeWaterShpUrl || !hemmelsdorferCsvUrl || !hemmelmarkerCsvUrl || !kellerseeCsvUrl || !postseeCsvUrl)
+      throw new Error('Missing CSV URLs');
+
+    const [lakeData, hemmelsdorferData, hemmelmarkerData, kellerseeData, postseeData] = await Promise.all([
+      fetchAndParseGeoJson(lakeWaterShpUrl),
+      fetchAndParseCSV(hemmelsdorferCsvUrl),
+      fetchAndParseCSV(hemmelmarkerCsvUrl),
+      fetchAndParseCSV(kellerseeCsvUrl),
+      fetchAndParseCSV(postseeCsvUrl),
+    ]);
+
+    // Merge data
+    const merged = lakeData.features.map((feature) => {
+      const name = feature.properties.WK_NAME;
+      if (name.includes('Hemmelmarker')) {
+        return {
+          ...feature,
+          lakeDepth: hemmelmarkerData,
+        };
+      }
+      if (name.includes('Hemmelsdorfer')) {
+        return {
+          ...feature,
+          lakeDepth: hemmelsdorferData,
+        };
+      }
+      if (name.includes('Kellersee')) {
+        return {
+          ...feature,
+          lakeDepth: kellerseeData,
+        };
+      }
+      if (name.includes('Postsee')) {
+        return {
+          ...feature,
+          lakeDepth: postseeData,
+        };
+      }
+      return {
+        ...feature,
+        lakeDepth: {},
+      };
+    });
+    return merged;
+  }
+  catch (err) {
+    console.error('Failed to fetch and merge:', err);
     return [];
   }
 }

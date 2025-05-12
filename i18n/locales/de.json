@@ -1,3 +1,12 @@
 {
-  "app_name": "OpenKarte"
+  "openMap": "OpenKarte",
+  "quality": "Qualität",
+  "category": "Kategorie",
+  "depth": "Tiefe",
+  "seasonal": "Saisonal",
+  "infrastructure": "Infrastruktur",
+  "mapDisplayOption": "Karten Display Optionen",
+  "bathingWater": "Badegewässer Stammdaten",
+  "BusStopData": "Norderstedt Bushaltestelle Daten",
+  "lakesData": "See-Wasserkörper Daten"
 }
