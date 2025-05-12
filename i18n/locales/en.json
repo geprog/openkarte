@@ -8,5 +8,6 @@
   "mapDisplayOption": "Map Display Options",
   "bathingWater": "Bathing Water Data",
   "BusStopData": "Norderstedt Bus Stop Data",
-  "lakesData": "Lakes Data"
+  "lakesData": "Lakes Data",
+  "selectedDate": "Selected Date"
 }

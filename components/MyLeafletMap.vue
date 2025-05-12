@@ -9,6 +9,8 @@ import { defineEmits, onMounted, ref, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
+import chroma from 'chroma-js';
+const colorScale = chroma.scale(['#FFFFB2', '#BD0026']); // light yellow to dark red
 
 const props = defineProps<{
   waterBodies: MergedData[]
@@ -30,6 +32,13 @@ const map = ref<HTMLDivElement | null>(null);
 
 let leafletMap: L.Map | null = null;
 
+function getColorForDepth(depth: number, minDepth: number, maxDepth: number): string {
+  if (minDepth === maxDepth) return 'rgb(255,0,0)'; // fallback if all depths are same
+  const ratio = (depth - minDepth) / (maxDepth - minDepth);
+  const red = Math.floor(255 * ratio);
+  const blue = Math.floor(255 * (1 - ratio));
+  return `rgb(${red},0,${blue})`;
+}
 function getColorByFeature(value: string, feature: string): string {
   const colorSets: Record<string, Record<string, string>> = {
     bathing: {
@@ -116,7 +125,7 @@ function renderMarkers(data: typeof props.waterBodies, feature: string) {
     }
   });
 }
-function renderBusStopMarkers(data: props.busStops) {
+function renderBusStopMarkers(data: typeof props.busStops) {
   clearBusStopMarkers();
 
   data.forEach((feature) => {
@@ -145,15 +154,11 @@ function renderBusStopMarkers(data: props.busStops) {
     }
   });
 }
-function renderLakesMarkers(data: props.lakeData, selectedDate: string) {
+function renderLakesMarkers(data: typeof props.lakeData, selectedDate: string) {
   clearLakeMarkers();
-
-  const lakeLegendValues: string[] = [];
+  const matchedDepth: number[] = [];
 
   data.forEach((feature) => {
-    let hasMatchingDepth = false;
-    let matchedDepth = null;
-
     if (feature.lakeDepth.length > 0 && selectedDate) {
       const matched = feature.lakeDepth.find((d) => {
         const [datePart] = d.Zeit.split(' ');
@@ -161,47 +166,58 @@ function renderLakesMarkers(data: props.lakeData, selectedDate: string) {
         const formattedZeit = zeit.toLocaleDateString('en-CA');
         return formattedZeit === selectedDate;
       });
-
       if (matched) {
-        matchedDepth = matched.wasserstand;
-        hasMatchingDepth = true;
+        matchedDepth.push(parseFloat(matched.wasserstand));
       }
     }
+  });
+  const minDepth = 0;
+  const maxDepth = Math.max(...matchedDepth, 0);
 
-    // Choose color based on depth availability
-    const fillColor = hasMatchingDepth ? '#F44336' : '#2196F3'; // red if match, blue otherwise
-    const depthLabel = hasMatchingDepth ? `Depth: ${matchedDepth}` : 'Not Available';
+  data.forEach((feature) => {
 
-    if (!lakeLegendValues.includes(depthLabel)) {
-      lakeLegendValues.push(depthLabel);
+    if (feature.lakeDepth.length > 0 && selectedDate) {
+
+      const matched = feature.lakeDepth.find((d) => {
+      const [datePart] = d.Zeit.split(' ');
+      const zeit = new Date(datePart);
+      const formattedZeit = zeit.toLocaleDateString('en-CA');
+        return formattedZeit === selectedDate;
+      });
+
+      const depth = matched ? parseFloat(matched.wasserstand) : 0;
+      const fillColor = getColorForDepth(depth, minDepth, maxDepth);
+      const depthLabel = matched ? `Depth: ${depth.toFixed(2)} cm` : 'Not Available';
+
+      const geom = feature.geometry;
+      const latlngs = geom.type === 'MultiPolygon'
+        ? geom.coordinates.map(polygon => polygon[0].map(([x, y]) => [y, x]))
+        : [geom.coordinates[0].map(([x, y]) => [y, x])];
+
+      const polygon = L.polygon(latlngs, {
+        color: fillColor,
+        weight: 2,
+        fillOpacity: 0.5,
+      }).addTo(leafletMap as L.Map);
+
+      polygon.bindTooltip(depthLabel);
+      lakeMarkers.push(polygon);
     }
-
-    const geom = feature.geometry;
-    const latlngs = geom.type === 'MultiPolygon'
-      ? geom.coordinates.map(polygon => polygon[0].map(([x, y]) => [y, x]))
-      : [geom.coordinates[0].map(([x, y]) => [y, x])];
-
-    const polygon = L.polygon(latlngs, {
-      color: fillColor,
-      weight: 2,
-      fillOpacity: 0.4,
-    }).addTo(leafletMap as L.Map);
-
-    polygon.bindTooltip(depthLabel);
-    lakeMarkers.push(polygon);
   });
 
-  // Add legend for lake depths
+  // --- Gradient Legend ---
   clearLegend();
   legendControl = new L.Control({ position: 'topleft' });
   legendControl.onAdd = () => {
     const div = L.DomUtil.create('div', 'info legend');
-    lakeLegendValues.forEach((label) => {
-      const color = label.includes('Depth') ? '#F44336' : '#2196F3';
-      div.innerHTML += `
-        <i style="background:${color}; width: 12px; height: 12px; display: inline-block; margin-right: 8px;"></i>
-        <span style="color: black;">${label}</span><br>`;
-    });
+    div.innerHTML += `
+      <span style="color:black">Tiefe des Sees</span>
+      <div style="background: linear-gradient(to right, rgb(0,0,255), rgb(255,0,0)); height: 10px; width: 250px; margin-bottom: 4px;"></div>
+      <div style="display: flex; justify-content: space-between; font-size: 12px;">
+        <span style="color:black">0 cm</span>
+        <span style="color:black">${maxDepth.toFixed(2)} cm</span>
+      </div>
+    `;
     return div;
   };
   legendControl.addTo(leafletMap as L.Map);
@@ -271,7 +287,7 @@ onMounted(() => {
     renderBusStopMarkers(props.busStops.features);
   }
   if (props.lakeData && Array.isArray(props.lakeData)) {
-    renderLakesMarkers(props.lakeData, selectedLakeDate);
+    renderLakesMarkers(props.lakeData, props.selectedLakeDate);
   }
 });
 
@@ -308,11 +324,13 @@ watch(() => props.busStops, (newStops) => {
   if (newStops && Array.isArray(newStops.features)) {
     clearLegend();
     clearMarkers();
+    clearLakeMarkers();
     renderBusStopMarkers(newStops.features);
   }
   else {
     clearLegend();
     clearMarkers();
+    clearLakeMarkers();
     clearBusStopMarkers();
   }
 });

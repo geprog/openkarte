@@ -94,12 +94,111 @@ const dataUrls = {
   infrastructure: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=badegewasser-infrastruktur-aktuell',
   busStops: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=bushaltestelle',
   lake: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=see-wasserkorper',
-  hemmelsdorfer: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-hemmelsdorfer-see-hemmelsdorfer-see1',
-  hemmelmarker: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-hemmelmarker-see',
-  kellersee: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-kellersee-kellersee1',
-  postsee: 'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-postsee-postsee1',
-
 };
+
+const lakeNames = [
+  'hemmelsdorfer',
+  'hemmelmarker',
+  'kellersee',
+  'postsee',
+  'Arenholzer',
+  'Barkauer',
+  'Behlendorfer',
+  'Behler',
+  'Belauer',
+  'Bistensee',
+  'Bordesholmer',
+  'Bornhöveder',
+  'Bottschloter',
+  'Brahmsee',
+  'Dieksee',
+  'Dobersdorfer',
+  'Drüsensee',
+  'Einfelder',
+  'Großensee',
+  'Plöner',
+  'Pönitzer',
+  'Ratzeburger',
+  'Segeberger',
+  'Gudower',
+  'Hohner',
+  'Süderfahrenstedt',
+  'Mözener',
+  'Neustadt',
+  'Neversdorfer',
+  'Passader',
+  'Rantumdammsiel',
+  'Schluensee',
+  'Schöhsee',
+  'Schwansener',
+  'Seedorfer',
+  'Sibbersdorfer',
+  'Stendorfer',
+  'Stocksee',
+  'Stolper',
+  'Südensee',
+  'Süseler',
+  'Suhrer',
+  'Trammer',
+  'Tresdorfer',
+  'Vierer',
+  'Westensee',
+  'Windebyer',
+  'Wittensee',
+  'Meldorf-Kronenloch',
+];
+
+const lakeUrls = [
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-hemmelsdorfer-see-hemmelsdorfer-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-hemmelmarker-see',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-kellersee-kellersee1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-postsee-postsee1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-arenholzer-see-arenholzer-see',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-barkauer-see-barkauer-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-behlendorfer-see-behlendorfer-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-behler-see-behler-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-belauer-see-belauer-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-bistensee-bistensee1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-bordesholmer-see-bordesholmer-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-bornhoveder-see-bornhoveder-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-bottschlotter-see',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-brahmsee',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-dieksee-dieksee1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-dobersdorfer-see-dobersdorfer-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-drusensee-drusensee1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-einfelder-see-einfelder-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-grossensee-grossensee1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-kl-ploner-see-kl-ploner-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-kl-ponitzer-see-kl-ponitzer-see',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-ratzeburger-see-ratzeburger-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-gr-segeberger-see-segeberger-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-gudower-see-gudower-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-hohner-see-hohner-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-langsee-suderfahrenstedt-langsee1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-mozener-see-mozener-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-neustadter-binnenwasser1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-neversdorfer-see-neversdorfer-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-passader-see-passader-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-rantumdammsiel-rantumbecken1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-schluensee-schluensee1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-schohsee1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-schwansener-see-fp-schopfwerk1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-seedorfer-see',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-sibbersdorfer-see-sibbersdorfer-see',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-stendorfer-see-stendorfer-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-stocksee-stocksee1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-stolper-see-stolper-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-sudensee-sudensee1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-suseler-see',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-suhrer-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-trammer-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-tresdorfer-see1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-vierer-see',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-westensee-westensee1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-windebyer-noor1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-wittensee-wittensee1',
+  'https://opendata.schleswig-holstein.de/api/action/package_show?id=wasserstand-pegel-meldorf-kronenloch',
+];
 
 async function getUrl(apiUrl: string, type: string): Promise<string | null> {
   const response = await fetch(apiUrl);
@@ -295,55 +394,31 @@ export async function fetchBusStopData() {
 
 export async function fetchLakesData() {
   try {
-    const [lakeWaterShpUrl, hemmelsdorferCsvUrl, hemmelmarkerCsvUrl, kellerseeCsvUrl, postseeCsvUrl] = await Promise.all([
-      getUrl(dataUrls.lake, 'shp'),
-      getUrl(dataUrls.hemmelsdorfer, 'csv'),
-      getUrl(dataUrls.hemmelmarker, 'csv'),
-      getUrl(dataUrls.kellersee, 'csv'),
-      getUrl(dataUrls.postsee, 'csv'),
-    ]);
+    const lakeWaterShpUrl = await getUrl(dataUrls.lake, 'shp');
+    if (!lakeWaterShpUrl) throw new Error('Missing SHP URL');
 
-    if (!lakeWaterShpUrl || !hemmelsdorferCsvUrl || !hemmelmarkerCsvUrl || !kellerseeCsvUrl || !postseeCsvUrl)
-      throw new Error('Missing CSV URLs');
+    const csvUrls = await Promise.all(
+      lakeUrls.map((url) => getUrl(url, 'csv'))
+    );
+    if (csvUrls.some((url) => !url)) throw new Error('Missing some CSV URLs');
 
-    const [lakeData, hemmelsdorferData, hemmelmarkerData, kellerseeData, postseeData] = await Promise.all([
-      fetchAndParseGeoJson(lakeWaterShpUrl),
-      fetchAndParseCSV(hemmelsdorferCsvUrl),
-      fetchAndParseCSV(hemmelmarkerCsvUrl),
-      fetchAndParseCSV(kellerseeCsvUrl),
-      fetchAndParseCSV(postseeCsvUrl),
-    ]);
+    const lakeData = await fetchAndParseGeoJson(lakeWaterShpUrl);
+
+    const lakeCsvData = await Promise.all(
+      csvUrls.map((url) => fetchAndParseCSV(url))
+    );
 
     // Merge data
     const merged = lakeData.features.map((feature) => {
-      const name = feature.properties.WK_NAME;
-      if (name.includes('Hemmelmarker')) {
-        return {
-          ...feature,
-          lakeDepth: hemmelmarkerData,
-        };
-      }
-      if (name.includes('Hemmelsdorfer')) {
-        return {
-          ...feature,
-          lakeDepth: hemmelsdorferData,
-        };
-      }
-      if (name.includes('Kellersee')) {
-        return {
-          ...feature,
-          lakeDepth: kellerseeData,
-        };
-      }
-      if (name.includes('Postsee')) {
-        return {
-          ...feature,
-          lakeDepth: postseeData,
-        };
-      }
+      const wkName = feature.properties.WK_NAME.toLowerCase();
+    
+      const matchingIndex = lakeNames.findIndex((lakeName) =>
+        wkName.includes(lakeName.toLowerCase())
+      );
+    
       return {
         ...feature,
-        lakeDepth: {},
+        lakeDepth: matchingIndex !== -1 ? lakeCsvData[matchingIndex] : {},
       };
     });
     return merged;

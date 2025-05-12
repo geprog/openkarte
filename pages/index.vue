@@ -19,7 +19,7 @@
         <span class="text-lg font-semibold">{{ t('openMap') }}</span>
       </div>
       <div class="px-4">
-        <select v-model="locale" class="text-white rounded py-1">
+        <select class="text-white rounded py-1" @click="(event) => setLocale(event)">
           <option value="en">
             English
           </option>
@@ -103,7 +103,7 @@
             </span>
           </div>
           <div class="mt-2 text-center text-white font-semibold">
-            Selected Date: {{ selectedDate }}
+            {{ t('selectedDate') }}: {{ selectedDate }}
           </div>
         </div>
         <div v-if="feature === 'lakeData'" class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-slate-900 bg-opacity-80">
@@ -115,7 +115,7 @@
             class="w-full relative z-10"
           >
           <div class="mt-2 text-center text-white font-semibold">
-            Selected Date: {{ selectedLakeDate }}
+            {{ t('selectedDate') }}: {{ selectedLakeDate }}
           </div>
         </div>
         <div
@@ -150,7 +150,7 @@ import MyLeafletMap from '~/components/MyLeafletMap.vue';
 import { fetchBathData, fetchBusStopData, fetchLakesData } from '~/composables/useFetchOpenData';
 // import layout from '/layout.json';
 
-const { t, locale } = useI18n();
+const { t, setLocale } = useI18n();
 
 const isSmallScreen = computed(() => {
   return window.innerWidth < 768;
