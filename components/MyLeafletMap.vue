@@ -15,9 +15,9 @@ const colorScale = chroma.scale(['#FFFFB2', '#BD0026']); // light yellow to dark
 const props = defineProps<{
   waterBodies: MergedData[]
   featureDisplay: 'bathing' | 'traffic' | null
-  busStops: null
-  lakeData: null
-  selectedLakeDate: null
+  busStops?: GeoJSON.Feature<GeoJSON.Point, unknown>[]
+  lakeData?: GeoJSON.Feature<GeoJSON.Geometry, { WK_NAME: string, lakeDepth: LakeDepth[] }>[]
+  selectedLakeDate?: string
 }>();
 const emit = defineEmits<{
   (e: 'marker-click', data: MergedData): void
@@ -126,21 +126,24 @@ function renderMarkers(data: typeof props.waterBodies, feature: string) {
   });
 }
 function renderBusStopMarkers(data: typeof props.busStops) {
+  if (!data) {
+    return;
+  }
   clearBusStopMarkers();
 
-  data.forEach((feature) => {
-    const [minLng, minLat, maxLng, maxLat] = feature.bbox;
+  // data.forEach((feature) => {
+  //   const [minLng, minLat, maxLng, maxLat] = feature.bbox;
 
-    if (!Number.isNaN(minLat) && !Number.isNaN(minLng) && !Number.isNaN(maxLat) && !Number.isNaN(maxLng)) {
-      const rect = L.rectangle([[minLat, minLng], [maxLat, maxLng]], {
-        color: '#2196F3',
-        weight: 10,
-        fillOpacity: 0.1,
-      })
-        .addTo(leafletMap as L.Map);
-      busStopMarkers.push(rect);
-    }
-  });
+  //   if (!Number.isNaN(minLat) && !Number.isNaN(minLng) && !Number.isNaN(maxLat) && !Number.isNaN(maxLng)) {
+  //     const rect = L.rectangle([[minLat, minLng], [maxLat, maxLng]], {
+  //       color: '#2196F3',
+  //       weight: 10,
+  //       fillOpacity: 0.1,
+  //     })
+  //       .addTo(leafletMap as L.Map);
+  //     busStopMarkers.push(rect);
+  //   }
+  // });
   data.forEach((feature) => {
     const [lat, lng] = feature.geometry.coordinates;
     if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
@@ -154,13 +157,16 @@ function renderBusStopMarkers(data: typeof props.busStops) {
     }
   });
 }
-function renderLakesMarkers(data: typeof props.lakeData, selectedDate: string) {
+function renderLakesMarkers(data: typeof props.lakeData, selectedDate?: string) {
+  if (!data) {
+    return;
+  }
   clearLakeMarkers();
   const matchedDepth: number[] = [];
 
   data.forEach((feature) => {
-    if (feature.lakeDepth.length > 0 && selectedDate) {
-      const matched = feature.lakeDepth.find((d) => {
+    if (feature.properties.lakeDepth.length > 0 && selectedDate) {
+      const matched = feature.properties.lakeDepth.find((d) => {
         const [datePart] = d.Zeit.split(' ');
         const zeit = new Date(datePart);
         const formattedZeit = zeit.toLocaleDateString('en-CA');
@@ -176,9 +182,9 @@ function renderLakesMarkers(data: typeof props.lakeData, selectedDate: string) {
 
   data.forEach((feature) => {
 
-    if (feature.lakeDepth.length > 0 && selectedDate) {
+    if (feature.properties.lakeDepth.length > 0 && selectedDate) {
 
-      const matched = feature.lakeDepth.find((d) => {
+      const matched = feature.properties.lakeDepth.find((d) => {
       const [datePart] = d.Zeit.split(' ');
       const zeit = new Date(datePart);
       const formattedZeit = zeit.toLocaleDateString('en-CA');
@@ -190,7 +196,10 @@ function renderLakesMarkers(data: typeof props.lakeData, selectedDate: string) {
       const depthLabel = matched ? `Depth: ${depth.toFixed(2)} cm` : 'Not Available';
 
       const geom = feature.geometry;
-      const latlngs = geom.type === 'MultiPolygon'
+      if (geom.type === 'Point' || geom.type === 'LineString' || geom.type === 'MultiPoint' || geom.type === 'GeometryCollection') {
+        return;
+      }
+      const latlngs: L.LatLngExpression[][] = geom.type === 'MultiPolygon'
         ? geom.coordinates.map(polygon => polygon[0].map(([x, y]) => [y, x]))
         : [geom.coordinates[0].map(([x, y]) => [y, x])];
 
@@ -284,7 +293,7 @@ onMounted(() => {
     legendControl.addTo(leafletMap);
   }
   if (props.busStops && Array.isArray(props.busStops)) {
-    renderBusStopMarkers(props.busStops.features);
+    renderBusStopMarkers(props.busStops);
   }
   if (props.lakeData && Array.isArray(props.lakeData)) {
     renderLakesMarkers(props.lakeData, props.selectedLakeDate);
@@ -321,11 +330,11 @@ watch(
   { immediate: true },
 );
 watch(() => props.busStops, (newStops) => {
-  if (newStops && Array.isArray(newStops.features)) {
+  if (newStops && Array.isArray(newStops)) {
     clearLegend();
     clearMarkers();
     clearLakeMarkers();
-    renderBusStopMarkers(newStops.features);
+    renderBusStopMarkers(newStops);
   }
   else {
     clearLegend();

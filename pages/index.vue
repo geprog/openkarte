@@ -144,7 +144,7 @@
 </template>
 
 <script setup lang="ts">
-import type { MergedData } from '~/composables/useFetchOpenData';
+import type { LakeDepth, MergedData } from '~/composables/useFetchOpenData';
 import { computed, ref, watch } from 'vue';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
 import { fetchBathData, fetchBusStopData, fetchLakesData } from '~/composables/useFetchOpenData';
@@ -157,8 +157,8 @@ const isSmallScreen = computed(() => {
 });
 const sidebarOpen = ref(false);
 const bathingWaterData = ref<MergedData[]>([]);
-const busStopsData = ref();
-const lakeData = ref();
+const busStopsData = ref<GeoJSON.Feature<GeoJSON.Point, unknown>[]>();
+const lakeData = ref<GeoJSON.Feature<GeoJSON.Geometry, { WK_NAME: string, lakeDepth: LakeDepth[] }>[]>();
 type FeatureType = 'bathing' | 'busStops' | 'lakeData';
 const feature = ref<FeatureType | null>(null);
 const dateOptions = [
@@ -237,13 +237,16 @@ function setFeature(f: FeatureType) {
   sidebarOpen.value = false;
 }
 function setLakeDepth() {
+  if (!lakeData.value) {
+    return;
+  }
   lakeData.value.forEach((feature) => {
-    if (Array.isArray(feature.lakeDepth) && feature.lakeDepth.length > 0) {
-      const dates = feature.lakeDepth
+    if (Array.isArray(feature.properties.lakeDepth) && feature.properties.lakeDepth.length > 0) {
+      const dates = feature.properties.lakeDepth
         .map((entry) => {
           const [datePart] = entry.Zeit.split(' ');
           const parsedDate = new Date(datePart);
-          return parsedDate;
+          return parsedDate.getTime();
         });
       if (dates.length > 0) {
         const minDate = new Date(Math.min(...dates));
@@ -279,23 +282,26 @@ function setLakeDepth() {
       current.setDate(current.getDate() + 1);
     }
     lakeDateOptions.value = dates;
+    selectedLakeDateIndex.value = dates.length - 1;
   }
   else {
     lakeDateOptions.value = [];
+    selectedLakeDateIndex.value = 0;
   }
   selectedLakeDate.value = lakeDateOptions.value[selectedLakeDateIndex.value]?.toLocaleDateString('en-CA') || '';
 }
 watch(selectedIndex, async (newIndex) => {
   selectedItem.value = null;
   selectedDate.value = dateOptions[newIndex];
-  bathingWaterData.value = await fetchBathData(selectedDate);
+  bathingWaterData.value = await fetchBathData(selectedDate.value);
 });
 watch(selectedLakeDateIndex, async (newIndex) => {
   selectedLakeDate.value = lakeDateOptions.value[newIndex]?.toISOString().split('T')[0] || '';
 });
 watch(feature, async () => {
   if (feature.value === 'bathing') {
-    bathingWaterData.value = await fetchBathData(selectedDate);
+    selectedIndex.value = dateOptions.length - 1;
+    bathingWaterData.value = await fetchBathData(selectedDate.value);
   }
   else if (feature.value === 'busStops') {
     busStopsData.value = await fetchBusStopData();
