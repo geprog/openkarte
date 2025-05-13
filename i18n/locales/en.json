@@ -1,4 +1,13 @@
 {
-  "start_page": "Start page",
-  "other_page": "Other page"
+  "openMap": "OpenMap",
+  "quality": "Quality",
+  "category": "Category",
+  "depth": "Depth",
+  "seasonal": "Seasonal",
+  "infrastructure": "Infrastructure",
+  "mapDisplayOption": "Map Display Options",
+  "bathingWater": "Bathing Water Data",
+  "BusStopData": "Norderstedt Bus Stop Data",
+  "lakesData": "Lakes Data",
+  "selectedDate": "Selected Date"
 }
