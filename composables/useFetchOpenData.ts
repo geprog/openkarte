@@ -236,7 +236,7 @@ async function getUrl(apiUrl: string, type: string): Promise<string> {
   console.error('Failed to get URL:', data.error);
   throw new Error(`Failed to load Meta Information from ${apiUrl}`);
 }
-async function fetchAndParseCSV<D extends Record<string, string>>(csvUrl: string, headers?: string[]): Promise<D[]> {
+async function fetchAndParseCSV<D>(csvUrl: string, headers?: string[]): Promise<D[]> {
   const proxyUrl = `/api/proxy-csv?url=${encodeURIComponent(csvUrl)}`;
   const response = await fetch(proxyUrl);
   const arrayBuffer = await response.arrayBuffer();
