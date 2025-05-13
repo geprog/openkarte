@@ -14,7 +14,7 @@ const colorScale = chroma.scale(['#FFFFB2', '#BD0026']); // light yellow to dark
 
 const props = defineProps<{
   waterBodies: MergedData[]
-  featureDisplay: 'bathing' | 'traffic' | null
+  featureDisplay: 'bathing' | 'busStops' | 'lakeData' | null
   busStops?: GeoJSON.Feature<GeoJSON.Point, unknown>[]
   lakeData?: GeoJSON.Feature<GeoJSON.Geometry, { WK_NAME: string, lakeDepth: LakeDepth[] }>[]
   selectedLakeDate?: string
@@ -280,8 +280,6 @@ onMounted(() => {
           switch (props.featureDisplay) {
             case 'bathing':
               return item.classification?.EINSTUFUNG_ODER_VORABBEWERTUNG;
-            case 'traffic':
-              return item.measurements?.GEWAESSERKATEGORIE;
             default:
               return undefined;
           }
@@ -316,7 +314,6 @@ watch(
           newData.map((item) => {
             switch (newFeature) {
               case 'bathing': return item.classification?.EINSTUFUNG_ODER_VORABBEWERTUNG;
-              case 'traffic': return item.measurements?.GEWAESSERKATEGORIE;
               default: return undefined;
             }
           }).filter((v): v is string => v !== undefined),
