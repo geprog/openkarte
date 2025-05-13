@@ -4,7 +4,6 @@
 
 <script setup lang="ts">
 import type { MergedData } from '~/composables/useFetchOpenData';
-import chroma from 'chroma-js';
 import L, { Control } from 'leaflet';
 import { defineEmits, onMounted, ref, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
@@ -18,9 +17,11 @@ const props = defineProps<{
   busStops?: GeoJSON.Feature<GeoJSON.Point, unknown>[]
   lakeData?: GeoJSON.Feature<GeoJSON.Geometry, { WK_NAME: string, lakeDepth: LakeDepth[] }>[]
   selectedLakeDate?: string
-}>(); const emit = defineEmits<{
+}>();
+const emit = defineEmits<{
   (e: 'marker-click', data: MergedData): void
-}>(); const colorScale = chroma.scale(['#FFFFB2', '#BD0026']); const markers: L.Layer[] = [];
+}>();
+const markers: L.Layer[] = [];
 const busStopMarkers: L.Layer[] = [];
 const lakeMarkers: L.Layer[] = [];
 let selectedMarker: L.CircleMarker | null = null;
