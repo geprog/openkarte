@@ -148,10 +148,10 @@ const lakeNames = [
   'Meldorf-Kronenloch',
 ];
 
-export type LakeDepth = {
-  Zeit: string;
-  wasserstand: string;
-  wasserstand_status: string;
+export interface LakeDepth {
+  Zeit: string
+  wasserstand: string
+  wasserstand_status: string
 }
 
 const lakeUrls = [

@@ -4,13 +4,13 @@
 
 <script setup lang="ts">
 import type { MergedData } from '~/composables/useFetchOpenData';
+import chroma from 'chroma-js';
 import L, { Control } from 'leaflet';
 import { defineEmits, onMounted, ref, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-import chroma from 'chroma-js';
-const colorScale = chroma.scale(['#FFFFB2', '#BD0026']); // light yellow to dark red
+// light yellow to dark red
 
 const props = defineProps<{
   waterBodies: MergedData[]
@@ -18,11 +18,9 @@ const props = defineProps<{
   busStops?: GeoJSON.Feature<GeoJSON.Point, unknown>[]
   lakeData?: GeoJSON.Feature<GeoJSON.Geometry, { WK_NAME: string, lakeDepth: LakeDepth[] }>[]
   selectedLakeDate?: string
-}>();
-const emit = defineEmits<{
+}>(); const emit = defineEmits<{
   (e: 'marker-click', data: MergedData): void
-}>();
-const markers: L.Layer[] = [];
+}>(); const colorScale = chroma.scale(['#FFFFB2', '#BD0026']); const markers: L.Layer[] = [];
 const busStopMarkers: L.Layer[] = [];
 const lakeMarkers: L.Layer[] = [];
 let selectedMarker: L.CircleMarker | null = null;
@@ -33,7 +31,8 @@ const map = ref<HTMLDivElement | null>(null);
 let leafletMap: L.Map | null = null;
 
 function getColorForDepth(depth: number, minDepth: number, maxDepth: number): string {
-  if (minDepth === maxDepth) return 'rgb(255,0,0)'; // fallback if all depths are same
+  if (minDepth === maxDepth)
+    return 'rgb(255,0,0)'; // fallback if all depths are same
   const ratio = (depth - minDepth) / (maxDepth - minDepth);
   const red = Math.floor(255 * ratio);
   const blue = Math.floor(255 * (1 - ratio));
@@ -173,7 +172,7 @@ function renderLakesMarkers(data: typeof props.lakeData, selectedDate?: string) 
         return formattedZeit === selectedDate;
       });
       if (matched) {
-        matchedDepth.push(parseFloat(matched.wasserstand));
+        matchedDepth.push(Number.parseFloat(matched.wasserstand));
       }
     }
   });
@@ -181,17 +180,15 @@ function renderLakesMarkers(data: typeof props.lakeData, selectedDate?: string) 
   const maxDepth = Math.max(...matchedDepth, 0);
 
   data.forEach((feature) => {
-
     if (feature.properties.lakeDepth.length > 0 && selectedDate) {
-
       const matched = feature.properties.lakeDepth.find((d) => {
-      const [datePart] = d.Zeit.split(' ');
-      const zeit = new Date(datePart);
-      const formattedZeit = zeit.toLocaleDateString('en-CA');
+        const [datePart] = d.Zeit.split(' ');
+        const zeit = new Date(datePart);
+        const formattedZeit = zeit.toLocaleDateString('en-CA');
         return formattedZeit === selectedDate;
       });
 
-      const depth = matched ? parseFloat(matched.wasserstand) : 0;
+      const depth = matched ? Number.parseFloat(matched.wasserstand) : 0;
       const fillColor = getColorForDepth(depth, minDepth, maxDepth);
       const depthLabel = matched ? `Depth: ${depth.toFixed(2)} cm` : 'Not Available';
 
