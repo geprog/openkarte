@@ -234,8 +234,8 @@ const groupedDates = computed(() => {
 
 function setFeature(f: FeatureType) {
   feature.value = f;
-  sidebarOpen.value = false;
 }
+
 function setLakeDepth() {
   if (!lakeData.value) {
     return;
