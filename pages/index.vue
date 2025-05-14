@@ -21,7 +21,14 @@
       <div v-if="feature" class="text-lg font-semibold">
         {{ t(feature) }}
       </div>
-      <div class="px-4">
+      <div class="flex gap-4 px-4">
+        <UButton
+          :icon="isDark ? 'i-lucide-moon' : 'i-lucide-sun'"
+          color="neutral"
+          variant="ghost"
+          @click="isDark = !isDark"
+        />
+
         <select v-model="locale" class="text-white rounded py-1">
           <option value="en">
             English
@@ -154,11 +161,21 @@ import { fetchBathData, fetchBusStopData, fetchLakesData } from '~/composables/u
 // import layout from '/layout.json';
 
 const { t, locale, setLocale } = useI18n();
+const colorMode = useColorMode();
+
+const isDark = computed({
+  get() {
+    return colorMode.value === 'dark';
+  },
+  set(_isDark) {
+    colorMode.preference = _isDark ? 'dark' : 'light';
+  },
+});
 
 const isSmallScreen = computed(() => {
   return window.innerWidth < 768;
 });
-const sidebarOpen = ref(false);
+const sidebarOpen = ref(true);
 const bathingWaterData = ref<MergedData[]>([]);
 const busStopsData = ref<GeoJSON.Feature<GeoJSON.Point, unknown>[]>();
 const lakeData = ref<GeoJSON.Feature<GeoJSON.Geometry, { WK_NAME: string, lakeDepth: LakeDepth[] }>[]>();
