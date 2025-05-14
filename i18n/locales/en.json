@@ -6,8 +6,8 @@
   "seasonal": "Seasonal",
   "infrastructure": "Infrastructure",
   "mapDisplayOption": "Map Display Options",
-  "bathingWater": "Bathing Water Data",
-  "BusStopData": "Norderstedt Bus Stop Data",
-  "lakesData": "Lakes Data",
+  "bathing": "Bathing Water Data",
+  "busStops": "Norderstedt Bus Stop Data",
+  "lakeData": "Lakes Data",
   "selectedDate": "Selected Date"
 }

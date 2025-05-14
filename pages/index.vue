@@ -18,6 +18,9 @@
         </button>
         <span class="text-lg font-semibold">{{ t('openMap') }}</span>
       </div>
+      <div v-if="feature" class="text-lg font-semibold">
+        {{ t(feature) }}
+      </div>
       <div class="px-4">
         <select v-model="locale" class="text-white rounded py-1">
           <option value="en">
@@ -47,21 +50,21 @@
             :class="{ 'font-bold underline': feature === 'bathing' }"
             @click="setFeature('bathing')"
           >
-            {{ t('bathingWater') }}
+            {{ t('bathing') }}
           </li>
           <li
             class="cursor-pointer hover:text-blue-200"
             :class="{ 'font-bold underline': feature === 'busStops' }"
             @click="setFeature('busStops')"
           >
-            {{ t('BusStopData') }}
+            {{ t('busStops') }}
           </li>
           <li
             class="cursor-pointer hover:text-blue-200"
             :class="{ 'font-bold underline': feature === 'lakeData' }"
             @click="setFeature('lakeData')"
           >
-            {{ t('lakesData') }}
+            {{ t('lakeData') }}
           </li>
         </ul>
       </aside>

@@ -6,8 +6,8 @@
   "seasonal": "Saisonal",
   "infrastructure": "Infrastruktur",
   "mapDisplayOption": "Karten Display Optionen",
-  "bathingWater": "Badegewässer Stammdaten",
-  "BusStopData": "Norderstedt Bushaltestelle Daten",
-  "lakesData": "See-Wasserkörper Daten",
+  "bathing": "Badegewässer Stammdaten",
+  "busStops": "Norderstedt Bushaltestelle Daten",
+  "lakeData": "See-Wasserkörper Daten",
   "selectedDate": "Gewähltes Datum"
 }
