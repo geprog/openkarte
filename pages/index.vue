@@ -29,14 +29,7 @@
           @click="isDark = !isDark"
         />
 
-        <select v-model="locale" class="text-white rounded py-1">
-          <option value="en">
-            English
-          </option>
-          <option value="de">
-            Deutsch
-          </option>
-        </select>
+        <USelect v-model="locale" :items="localeItems" :icon="selectedLocaleIcon" :ui="{ placeholder: 'hidden' }" />
       </div>
     </header>
 
@@ -154,6 +147,7 @@
 </template>
 
 <script setup lang="ts">
+import type { SelectItem } from '@nuxt/ui';
 import type { LakeDepth, MergedData } from '~/composables/useFetchOpenData';
 import { computed, ref, watch } from 'vue';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
@@ -171,6 +165,9 @@ const isDark = computed({
     colorMode.preference = _isDark ? 'dark' : 'light';
   },
 });
+
+const localeItems = ref([{ value: 'en', icon: 'i-emojione-v1-flag-for-united-kingdom' }, { value: 'de', icon: 'i-emojione-v1-flag-for-germany' }] satisfies SelectItem[]);
+const selectedLocaleIcon = computed(() => localeItems.value.find(item => item.value === locale.value)?.icon);
 
 const isSmallScreen = computed(() => {
   return window.innerWidth < 768;
