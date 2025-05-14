@@ -31,7 +31,10 @@ const map = ref<HTMLDivElement | null>(null);
 
 let leafletMap: L.Map | null = null;
 
-function getColorForDepth(depth: number, minDepth: number, maxDepth: number): string {
+function getColorForDepth(depth: number | undefined, minDepth: number, maxDepth: number): string {
+  if (depth === undefined) {
+    return 'rgb(150, 150, 150)';
+  }
   if (minDepth === maxDepth)
     return 'rgb(255,0,0)'; // fallback if all depths are same
   const ratio = (depth - minDepth) / (maxDepth - minDepth);
@@ -166,12 +169,23 @@ function renderLakesMarkers(data: typeof props.lakeData, selectedDate?: string) 
 
   data.forEach((feature) => {
     if (feature.properties.lakeDepth.length > 0 && selectedDate) {
-      const matched = feature.properties.lakeDepth.find((d) => {
-        const [datePart] = d.Zeit.split(' ');
+      const date = new Date(selectedDate);
+      const matched = feature.properties.lakeDepth.reduce<LakeDepth | undefined>((nearest, lakeDepth) => {
+        const [datePart] = lakeDepth.Zeit.split(' ');
         const zeit = new Date(datePart);
-        const formattedZeit = zeit.toLocaleDateString('en-CA');
-        return formattedZeit === selectedDate;
-      });
+        if (zeit.getTime() <= date.getTime()) {
+          if (!nearest) {
+            return lakeDepth;
+          }
+          const [nearestDatePart] = lakeDepth.Zeit.split(' ');
+          const nearestZeit = new Date(nearestDatePart);
+          if (nearestZeit.getTime() > zeit.getTime()) {
+            return nearest;
+          }
+          return lakeDepth;
+        }
+        return nearest;
+      }, undefined);
       if (matched) {
         matchedDepth.push(Number.parseFloat(matched.wasserstand));
       }
@@ -182,16 +196,27 @@ function renderLakesMarkers(data: typeof props.lakeData, selectedDate?: string) 
 
   data.forEach((feature) => {
     if (feature.properties.lakeDepth.length > 0 && selectedDate) {
-      const matched = feature.properties.lakeDepth.find((d) => {
-        const [datePart] = d.Zeit.split(' ');
+      const date = new Date(selectedDate);
+      const matched = feature.properties.lakeDepth.reduce<LakeDepth | undefined>((nearest, lakeDepth) => {
+        const [datePart] = lakeDepth.Zeit.split(' ');
         const zeit = new Date(datePart);
-        const formattedZeit = zeit.toLocaleDateString('en-CA');
-        return formattedZeit === selectedDate;
-      });
+        if (zeit.getTime() <= date.getTime()) {
+          if (!nearest) {
+            return lakeDepth;
+          }
+          const [nearestDatePart] = lakeDepth.Zeit.split(' ');
+          const nearestZeit = new Date(nearestDatePart);
+          if (nearestZeit.getTime() > zeit.getTime()) {
+            return nearest;
+          }
+          return lakeDepth;
+        }
+        return nearest;
+      }, undefined);
 
-      const depth = matched ? Number.parseFloat(matched.wasserstand) : 0;
+      const depth = matched ? Number.parseFloat(matched.wasserstand) : undefined;
       const fillColor = getColorForDepth(depth, minDepth, maxDepth);
-      const depthLabel = matched ? `Depth: ${depth.toFixed(2)} cm` : 'Not Available';
+      const depthLabel = depth !== undefined ? `Depth: ${depth.toFixed(2)} cm` : 'Depth: Not Available';
 
       const geom = feature.geometry;
       if (geom.type === 'Point' || geom.type === 'LineString' || geom.type === 'MultiPoint' || geom.type === 'GeometryCollection') {
@@ -207,7 +232,7 @@ function renderLakesMarkers(data: typeof props.lakeData, selectedDate?: string) 
         fillOpacity: 0.5,
       }).addTo(leafletMap as L.Map);
 
-      polygon.bindTooltip(depthLabel);
+      polygon.bindTooltip(L.tooltip({ content: `<b>${feature.properties.WK_NAME}</b><br />${depthLabel}` }));
       lakeMarkers.push(polygon);
     }
   });
