@@ -1,12 +1,26 @@
 import { createError, getQuery } from 'h3';
 import shp from 'shpjs';
 
+const ALLOWED_HOSTS = [
+  'opendata.schleswig-holstein.de',
+  'efi2.schleswig-holstein.de',
+  'geoservice.norderstedt.de',
+  'hsi-sh.de',
+];
+
 export default defineEventHandler(async (event) => {
   const url = getQuery(event).url as string;
   if (!url) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Missing URL parameter',
+    });
+  }
+
+  if (!ALLOWED_HOSTS.includes(new URL(url).host)) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Access to this URL is not allowed',
     });
   }
 
