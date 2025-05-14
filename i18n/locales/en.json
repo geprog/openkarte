@@ -9,5 +9,8 @@
   "bathingWater": "Bathing Water Data",
   "BusStopData": "Norderstedt Bus Stop Data",
   "lakesData": "Lakes Data",
-  "selectedDate": "Selected Date"
+  "selectedDate": "Selected Date",
+  "waterLevelOfLake": "Water level of lake",
+  "waterLevel": "Water level",
+  "notAvailable": "Not Available"
 }

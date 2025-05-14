@@ -29,6 +29,8 @@ let legendControl: L.Control | null = null;
 
 const map = ref<HTMLDivElement | null>(null);
 
+const { t } = useI18n();
+
 let leafletMap: L.Map | null = null;
 
 function getColorForDepth(depth: number | undefined, minDepth: number, maxDepth: number): string {
@@ -216,7 +218,7 @@ function renderLakesMarkers(data: typeof props.lakeData, selectedDate?: string) 
 
       const depth = matched ? Number.parseFloat(matched.wasserstand) : undefined;
       const fillColor = getColorForDepth(depth, minDepth, maxDepth);
-      const depthLabel = depth !== undefined ? `Depth: ${depth.toFixed(2)} cm` : 'Depth: Not Available';
+      const depthLabel = `${t('waterLevel')}: ${depth !== undefined ? `${depth.toFixed(2)} cm` : t('notAvailable')}`;
 
       const geom = feature.geometry;
       if (geom.type === 'Point' || geom.type === 'LineString' || geom.type === 'MultiPoint' || geom.type === 'GeometryCollection') {
@@ -243,7 +245,7 @@ function renderLakesMarkers(data: typeof props.lakeData, selectedDate?: string) 
   legendControl.onAdd = () => {
     const div = L.DomUtil.create('div', 'info legend');
     div.innerHTML += `
-      <span style="color:black">Tiefe des Sees</span>
+      <span style="color:black">${t('waterLevelOfLake')}</span>
       <div style="background: linear-gradient(to right, rgb(0,0,255), rgb(255,0,0)); height: 10px; width: 250px; margin-bottom: 4px;"></div>
       <div style="display: flex; justify-content: space-between; font-size: 12px;">
         <span style="color:black">0 cm</span>
