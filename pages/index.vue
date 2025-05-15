@@ -19,7 +19,7 @@
         <span class="text-lg font-semibold">{{ t('openMap') }}</span>
       </div>
       <div class="px-4">
-        <select v-model="locale" class="text-white rounded py-1">
+        <select v-model="locale" class="rounded py-1">
           <option value="en">
             English
           </option>

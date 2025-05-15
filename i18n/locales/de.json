@@ -9,5 +9,8 @@
   "bathingWater": "Badegewässer Stammdaten",
   "BusStopData": "Norderstedt Bushaltestelle Daten",
   "lakesData": "See-Wasserkörper Daten",
-  "selectedDate": "Gewähltes Datum"
+  "selectedDate": "Gewähltes Datum",
+  "waterLevelOfLake": "Wasserpegel des Sees",
+  "waterLevel": "Wasserpegel",
+  "notAvailable": "Nicht verfügbar"
 }
