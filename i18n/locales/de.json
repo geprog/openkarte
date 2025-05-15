@@ -10,4 +10,7 @@
   "busStops": "Norderstedt Bushaltestelle Daten",
   "lakeData": "See-Wasserkörper Daten",
   "selectedDate": "Gewähltes Datum"
+  "waterLevelOfLake": "Wasserpegel des Sees",
+  "waterLevel": "Wasserpegel",
+  "notAvailable": "Nicht verfügbar"
 }
