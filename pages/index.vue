@@ -18,15 +18,18 @@
         </button>
         <span class="text-lg font-semibold">{{ t('openMap') }}</span>
       </div>
-      <div class="px-4">
-        <select v-model="locale" class="rounded py-1">
-          <option value="en">
-            English
-          </option>
-          <option value="de">
-            Deutsch
-          </option>
-        </select>
+      <div v-if="feature" class="text-lg font-semibold">
+        {{ t(feature) }}
+      </div>
+      <div class="flex gap-4 px-4">
+        <UButton
+          :icon="isDark ? 'i-lucide-moon' : 'i-lucide-sun'"
+          color="neutral"
+          variant="ghost"
+          @click="isDark = !isDark"
+        />
+
+        <USelect v-model="locale" :items="localeItems" :icon="selectedLocaleIcon" :ui="{ placeholder: 'hidden' }" />
       </div>
     </header>
 
@@ -47,28 +50,28 @@
             :class="{ 'font-bold underline': feature === 'bathing' }"
             @click="setFeature('bathing')"
           >
-            {{ t('bathingWater') }}
+            {{ t('bathing') }}
           </li>
           <li
             class="cursor-pointer hover:text-blue-200"
             :class="{ 'font-bold underline': feature === 'busStops' }"
             @click="setFeature('busStops')"
           >
-            {{ t('BusStopData') }}
+            {{ t('busStops') }}
           </li>
           <li
             class="cursor-pointer hover:text-blue-200"
             :class="{ 'font-bold underline': feature === 'lakeData' }"
             @click="setFeature('lakeData')"
           >
-            {{ t('lakesData') }}
+            {{ t('lakeData') }}
           </li>
         </ul>
       </aside>
 
       <main class="flex-1 relative">
         <MyLeafletMap :water-bodies="bathingWaterData" :bus-stops="busStopsData" :lake-data="lakeData" :feature-display="feature" :selected-lake-date="selectedLakeDate" @marker-click="selectedItem = $event" />
-        <div v-if="feature === 'bathing'" class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-slate-900 bg-opacity-80">
+        <div v-if="feature === 'bathing'" class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-white dark:bg-slate-900 bg-opacity-80 dark:bg-opacity-80">
           <div class="relative w-full h-2 rounded overflow-hidden">
             <div
               v-for="(group) in groupedDates"
@@ -102,11 +105,11 @@
               {{ group.year }}
             </span>
           </div>
-          <div class="mt-2 text-center text-white font-semibold">
+          <div class="mt-2 text-center text-black dark:text-white font-semibold">
             {{ t('selectedDate') }}: {{ selectedDate }}
           </div>
         </div>
-        <div v-if="feature === 'lakeData'" class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-slate-900 bg-opacity-80">
+        <div v-if="feature === 'lakeData'" class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-white dark:bg-slate-900 bg-opacity-80 dark:bg-opacity-80">
           <input
             v-model="selectedLakeDateIndex"
             type="range"
@@ -114,23 +117,23 @@
             :max="lakeDateOptions.length - 1"
             class="w-full relative z-10"
           >
-          <div class="mt-2 text-center text-white font-semibold">
+          <div class="mt-2 text-center text-black dark:text-white font-semibold">
             {{ t('selectedDate') }}: {{ selectedLakeDate }}
           </div>
         </div>
         <div
           v-if="selectedItem"
-          class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-xl"
+          class="absolute bottom-30 left-1/2 transform -translate-x-1/2 bg-white dark:bg-slate-900 text-black dark:text-white p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-xl"
         >
           <div class="flex justify-between items-center">
-            <h2 class="text-lg font-bold text-white">
+            <h2 class="text-lg font-bold text-black dark:text-white">
               {{ selectedItem.bathing.BADEGEWAESSERNAME }}
             </h2>
-            <button class="text-white text-xl" @click="selectedItem = null">
+            <button class="text-black dark:text-white text-xl" @click="selectedItem = null">
               &times;
             </button>
           </div>
-          <ul class="mt-2 space-y-1 text-sm text-white">
+          <ul class="mt-2 space-y-1 text-sm text-black dark:text-white">
             <li><strong>{{ t('quality') }}:</strong> {{ selectedItem.classification?.EINSTUFUNG_ODER_VORABBEWERTUNG || 'N/A' }}</li>
             <li><strong>{{ t('category') }}:</strong> {{ selectedItem.measurements?.GEWAESSERKATEGORIE || 'N/A' }}</li>
             <li><strong>{{ t('depth') }}:</strong> {{ selectedItem.measurements?.SICHTTIEFE || 'N/A' }}</li>
@@ -144,6 +147,7 @@
 </template>
 
 <script setup lang="ts">
+import type { SelectItem } from '@nuxt/ui';
 import type { LakeDepth, MergedData } from '~/composables/useFetchOpenData';
 import { computed, ref, watch } from 'vue';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
@@ -151,11 +155,24 @@ import { fetchBathData, fetchBusStopData, fetchLakesData } from '~/composables/u
 // import layout from '/layout.json';
 
 const { t, locale, setLocale } = useI18n();
+const colorMode = useColorMode();
+
+const isDark = computed({
+  get() {
+    return colorMode.value === 'dark';
+  },
+  set(_isDark) {
+    colorMode.preference = _isDark ? 'dark' : 'light';
+  },
+});
+
+const localeItems = ref([{ value: 'en', icon: 'i-emojione-v1-flag-for-united-kingdom' }, { value: 'de', icon: 'i-emojione-v1-flag-for-germany' }] satisfies SelectItem[]);
+const selectedLocaleIcon = computed(() => localeItems.value.find(item => item.value === locale.value)?.icon);
 
 const isSmallScreen = computed(() => {
   return window.innerWidth < 768;
 });
-const sidebarOpen = ref(false);
+const sidebarOpen = ref(true);
 const bathingWaterData = ref<MergedData[]>([]);
 const busStopsData = ref<GeoJSON.Feature<GeoJSON.Point, unknown>[]>();
 const lakeData = ref<GeoJSON.Feature<GeoJSON.Geometry, { WK_NAME: string, lakeDepth: LakeDepth[] }>[]>();
@@ -234,8 +251,8 @@ const groupedDates = computed(() => {
 
 function setFeature(f: FeatureType) {
   feature.value = f;
-  sidebarOpen.value = false;
 }
+
 function setLakeDepth() {
   if (!lakeData.value) {
     return;
