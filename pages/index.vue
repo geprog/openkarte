@@ -148,7 +148,13 @@ import type { LakeDepth, MergedData } from '~/composables/useFetchOpenData';
 import { computed, ref, watch } from 'vue';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
 import { fetchBathData, fetchBusStopData, fetchLakesData } from '~/composables/useFetchOpenData';
-// import layout from '/layout.json';
+
+const { data: response, status } = useLazyFetch('/api/opendataInputLayer');
+watch(status, () => {
+  if (status.value !== 'pending') {
+    console.warn(response.value);
+  }
+});
 
 const { t, locale, setLocale } = useI18n();
 
