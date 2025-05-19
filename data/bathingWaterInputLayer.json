@@ -1,0 +1,106 @@
+{
+  "datasets": [
+    {
+      "host": "opendata.schleswig-holstein.de",
+      "id": "badegewasser-stammdaten-2025-04-01",
+      "resource_id": "d4534d43-e378-40c8-9466-5bf1bff76794",
+      "title": "Badegewässer Stammdaten",
+      "headers": [
+        "BADEGEWAESSERID",
+        "BADEGEWAESSERNAME",
+        "KURZNAME",
+        "ALLGEMEIN_GEBRAEUCHL_NAME",
+        "GEWAESSERKATEGORIE",
+        "KUESTENGEWAESSER",
+        "BADEGEWAESSERTYP",
+        "WEITEREBESCHREIBUNG",
+        "BADESTELLENLAENGE",
+        "EUANMELDUNG",
+        "EUABMELDUNG",
+        "FLUSSGEBIETSEINHEITID",
+        "FLUSSGEBIETSEINHEITNAME",
+        "WASSERKOERPERID",
+        "WASSERKOERPERNAME",
+        "NATWASSERKOERPERID",
+        "NATWASSERKOERPERNAME",
+        "SCHLUESSELWOERTER",
+        "KREISNR",
+        "KREIS",
+        "GEMEINDENR",
+        "GEMEINDE",
+        "UTM_OST",
+        "UTM_NORD",
+        "GEOGR_LAENGE",
+        "GEOGR_BREITE",
+        "BADESTELLENINFORMATION",
+        "AUSWIRKUNGEN_AUF_BADEGEWAESSER",
+        "MOEGLICHEBELASTUNGEN"
+      ]
+    },
+    {
+      "host": "opendata.schleswig-holstein.de",
+      "id": "badegewasser-einstufung",
+      "resource_id": "bd51a0a3-ffb2-41a3-aa6c-a15df0cb64bd",
+      "title": "Badegewässer Einstufung",
+      "headers": [
+        "BADEGEWAESSERID",
+        "BEURTEILUNGSZEITRAUM_VON",
+        "BEURTEILUNGSZEITRAUM_BIS",
+        "EINSTUFUNG_ODER_VORABBEWERTUNG"
+      ]
+    },
+    {
+      "host": "opendata.schleswig-holstein.de",
+      "id": "badegewasser-messungen",
+      "resource_id": "a5fca440-849b-404d-a39e-fb87c48c692e",
+      "title": "Badegewässer Messungen",
+      "headers": [
+        "BADEGEWAESSERID",
+        "MESSSTELLENNAME",
+        "MESSSTELLENID",
+        "UEBERWACHUNGSARTID",
+        "UEBERWASCHUNGSARTTEXT",
+        "GEWAESSERKATEGORIE",
+        "KUESTENGEWAESSER",
+        "PROBEID",
+        "DATUMMESSUNG",
+        "PROBENART",
+        "ECOLI",
+        "INTEST_ENTEROKOKKEN",
+        "WASSERTEMP",
+        "LUFTTEMP",
+        "SICHTTIEFE",
+        "BEMERKUNG"
+      ]
+    },
+    {
+      "host": "opendata.schleswig-holstein.de",
+      "id": "badegewasser-saisondauer",
+      "resource_id": "a8a8ba9b-541b-4e14-b44c-eb771c61a2cf",
+      "title": "Badegewässer Saisondauer",
+      "headers": [
+        "BADEGEWAESSERID",
+        "SAISONBEGINN",
+        "SAISONENDE",
+        "GESCHLOSSEN"
+      ]
+    },
+    {
+      "host": "opendata.schleswig-holstein.de",
+      "id": "badegewasser-infrastruktur-aktuell",
+      "resource_id": "097e0aa7-c867-4897-a7d5-80332f5dfc76",
+      "title": "Badegewässer Infrastruktur",
+      "headers": [
+        "BADEGEWAESSERID",
+        "INFRASTRUKTURID",
+        "INFRASTRUKTUR"
+      ]
+    }
+  ],
+  "mappings": [
+    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-einstufung", "target_db_field": "BADEGEWAESSERID" },
+    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-messungen", "target_db_field": "BADEGEWAESSERID" },
+    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-saisondauer", "target_db_field": "BADEGEWAESSERID" },
+    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-infrastruktur-aktuell", "target_db_field": "BADEGEWAESSERID" }
+  ]
+}

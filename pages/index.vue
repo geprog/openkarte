@@ -51,13 +51,6 @@
           </li>
           <li
             class="cursor-pointer hover:text-blue-200"
-            :class="{ 'font-bold underline': feature === 'busStops' }"
-            @click="setFeature('busStops')"
-          >
-            {{ t('BusStopData') }}
-          </li>
-          <li
-            class="cursor-pointer hover:text-blue-200"
             :class="{ 'font-bold underline': feature === 'lakeData' }"
             @click="setFeature('lakeData')"
           >
@@ -148,13 +141,6 @@ import type { LakeDepth, MergedData } from '~/composables/useFetchOpenData';
 import { computed, ref, watch } from 'vue';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
 import { fetchBathData, fetchBusStopData, fetchLakesData } from '~/composables/useFetchOpenData';
-
-const { data: response, status } = useLazyFetch('/api/opendataInputLayer');
-watch(status, () => {
-  if (status.value !== 'pending') {
-    console.warn(response.value);
-  }
-});
 
 const { t, locale, setLocale } = useI18n();
 
@@ -306,8 +292,15 @@ watch(selectedLakeDateIndex, async (newIndex) => {
 });
 watch(feature, async () => {
   if (feature.value === 'bathing') {
+    const { data: response, status } = useLazyFetch(`/api/opendataInputLayer?feature=${encodeURIComponent(feature.value)}`);
+    watch(status, () => {
+      if (status.value !== 'pending') {
+        console.warn(response.value);
+        bathingWaterData.value = response.value;
+      }
+    });
     selectedIndex.value = dateOptions.length - 1;
-    bathingWaterData.value = await fetchBathData(selectedDate.value);
+    // bathingWaterData.value = await fetchBathData(selectedDate.value);
   }
   else if (feature.value === 'busStops') {
     busStopsData.value = await fetchBusStopData();

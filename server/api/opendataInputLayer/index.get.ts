@@ -1,6 +1,12 @@
-import { input } from '~/server/prepareInputLayer';
+import { getData } from '~/server/prepareInput';
 
-export default defineEventHandler(async () => {
-  console.warn(input);
-  return input;
+export default defineEventHandler(async (event) => {
+  const feature = getQuery(event).feature as string;
+  if (!feature) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Missing feature',
+    });
+  }
+  return await getData(feature);
 });
