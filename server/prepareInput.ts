@@ -15,6 +15,7 @@ export interface Mappings {
   condition: string
   target_db_id: string
   target_db_field: string
+  label_option: string
 }
 
 export interface InputJSON {
@@ -32,9 +33,9 @@ export async function getData(feature: string) {
     const fetchedData = await fetchData(bathingJson as InputJSON);
     return await fetchBathingMappings(fetchedData, bathingJson as InputJSON);
   }
-  else if (feature === 'lakes') {
+  else if (feature === 'lakeData') {
     const fetchedData = await fetchData(lakesJson as InputJSON);
-    return await fetchLakesMappings(fetchedData, bathingJson as InputJSON);
+    return await fetchLakesMappings(fetchedData, lakesJson as InputJSON);
   }
   else {
     return 'Unavailable Feature Requested!';

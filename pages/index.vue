@@ -60,75 +60,25 @@
       </aside>
 
       <main class="flex-1 relative">
-        <MyLeafletMap :water-bodies="bathingWaterData" :bus-stops="busStopsData" :lake-data="lakeData" :feature-display="feature" :selected-lake-date="selectedLakeDate" @marker-click="selectedItem = $event" />
-        <div v-if="feature === 'bathing'" class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-slate-900 bg-opacity-80">
-          <div class="relative w-full h-2 rounded overflow-hidden">
-            <div
-              v-for="(group) in groupedDates"
-              :key="group.year"
-              class="absolute h-full"
-              :style="{
-                left: `${group.offset}%`,
-                width: `${group.width}%`,
-                backgroundColor: group.color,
-              }"
-            />
-          </div>
-          <input
-            v-model="selectedIndex"
-            type="range"
-            :min="0"
-            :max="dateOptions.length - 1"
-            class="custom-slider w-full relative z-10"
-          >
-          <div class="relative w-full h-5">
-            <span
-              v-for="group in groupedDates"
-              :key="group.year"
-              class="absolute text-sm text-white"
-              :style="{
-                left: `${parseFloat(group.offset) + parseFloat(group.width) / 2}%`,
-                transform: 'translateX(-50%)',
-                fontSize: isSmallScreen ? '0.50rem' : '1rem',
-              }"
-            >
-              {{ group.year }}
-            </span>
-          </div>
-          <div class="mt-2 text-center text-white font-semibold">
-            {{ t('selectedDate') }}: {{ selectedDate }}
-          </div>
-        </div>
-        <div v-if="feature === 'lakeData'" class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-slate-900 bg-opacity-80">
-          <input
-            v-model="selectedLakeDateIndex"
-            type="range"
-            :min="0"
-            :max="lakeDateOptions.length - 1"
-            class="w-full relative z-10"
-          >
-          <div class="mt-2 text-center text-white font-semibold">
-            {{ t('selectedDate') }}: {{ selectedLakeDate }}
-          </div>
-        </div>
+        <MyLeafletMap :fetched-data="fetchedData" :selected-lake-date="selectedLakeDate" @marker-click="selectedItem = $event" />
         <div
           v-if="selectedItem"
           class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-xl"
         >
           <div class="flex justify-between items-center">
             <h2 class="text-lg font-bold text-white">
-              {{ selectedItem.bathing.BADEGEWAESSERNAME }}
+              {{ selectedItem.properties.BADEGEWAESSERNAME }}
             </h2>
             <button class="text-white text-xl" @click="selectedItem = null">
               &times;
             </button>
           </div>
           <ul class="mt-2 space-y-1 text-sm text-white">
-            <li><strong>{{ t('quality') }}:</strong> {{ selectedItem.classification?.EINSTUFUNG_ODER_VORABBEWERTUNG || 'N/A' }}</li>
-            <li><strong>{{ t('category') }}:</strong> {{ selectedItem.measurements?.GEWAESSERKATEGORIE || 'N/A' }}</li>
-            <li><strong>{{ t('depth') }}:</strong> {{ selectedItem.measurements?.SICHTTIEFE || 'N/A' }}</li>
-            <li><strong>{{ t('seasonal') }}:</strong> {{ selectedItem.seasonal?.SAISONBEGINN }} - {{ selectedItem.seasonal?.SAISONENDE }} {{ selectedItem.seasonal?.GESCHLOSSEN || 'N/A' }} </li>
-            <li><strong>{{ t('infrastructure') }}:</strong> {{ selectedItem.infrastructure?.INFRASTRUKTUR || 'N/A' }}</li>
+            <li><strong>{{ t('quality') }}:</strong> {{ selectedItem.properties?.EINSTUFUNG_ODER_VORABBEWERTUNG || 'N/A' }}</li>
+            <li><strong>{{ t('category') }}:</strong> {{ selectedItem.properties?.GEWAESSERKATEGORIE || 'N/A' }}</li>
+            <li><strong>{{ t('depth') }}:</strong> {{ selectedItem.properties?.SICHTTIEFE || 'N/A' }} m</li>
+            <li><strong>{{ t('seasonal') }}:</strong> {{ selectedItem.properties?.SAISONBEGINN }} - {{ selectedItem.properties?.SAISONENDE }} {{ selectedItem.properties?.GESCHLOSSEN || 'N/A' }} </li>
+            <li><strong>{{ t('infrastructure') }}:</strong> {{ selectedItem.properties?.INFRASTRUKTUR || 'N/A' }}</li>
           </ul>
         </div>
       </main>
@@ -137,23 +87,19 @@
 </template>
 
 <script setup lang="ts">
-import type { LakeDepth, MergedData } from '~/composables/useFetchOpenData';
 import { computed, ref, watch } from 'vue';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
-import { fetchBathData, fetchBusStopData, fetchLakesData } from '~/composables/useFetchOpenData';
+// import { setLakeDepth } from '~/composables/useSliderDates';
 
 const { t, locale, setLocale } = useI18n();
-
 const isSmallScreen = computed(() => {
   return window.innerWidth < 768;
 });
 const sidebarOpen = ref(false);
-const bathingWaterData = ref<MergedData[]>([]);
-const busStopsData = ref<GeoJSON.Feature<GeoJSON.Point, unknown>[]>();
-const lakeData = ref<GeoJSON.Feature<GeoJSON.Geometry, { WK_NAME: string, lakeDepth: LakeDepth[] }>[]>();
-type FeatureType = 'bathing' | 'busStops' | 'lakeData';
+const fetchedData = ref([]);
+type FeatureType = 'bathing' | 'lakeData';
 const feature = ref<FeatureType | null>(null);
-const dateOptions = [
+/* const dateOptions = [
   '2021-02-10',
   '2021-03-01',
   '2021-04-24',
@@ -184,20 +130,15 @@ const dateOptions = [
   '2024-06-01',
   '2024-11-01',
   '2025-04-01',
-];
+]; */
 
-const selectedIndex = ref(0);
-const selectedDate = ref(dateOptions[selectedIndex.value]);
+/* const selectedIndex = ref(0);
+const selectedDate = ref(dateOptions[selectedIndex.value]); */
 const selectedItem = ref<MergedData | null>(null);
-let globalMinDate: Date | null = null;
-let globalMaxDate: Date | null = null;
-const selectedLakeDateIndex = ref(0);
-const selectedLakeDate = ref('');
-const lakeDateOptions = ref<Date[]>([]);
 
-const yearColors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
+// const yearColors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
 
-const groupedDates = computed(() => {
+/* const groupedDates = computed(() => {
   const yearGroups = new Map<string, string[]>();
 
   dateOptions.forEach((date) => {
@@ -222,94 +163,48 @@ const groupedDates = computed(() => {
     offset += width;
     return group;
   });
-});
+}); */
 
 function setFeature(f: FeatureType) {
   feature.value = f;
   sidebarOpen.value = false;
 }
-function setLakeDepth() {
-  if (!lakeData.value) {
-    return;
-  }
-  lakeData.value.forEach((feature) => {
-    if (Array.isArray(feature.properties.lakeDepth) && feature.properties.lakeDepth.length > 0) {
-      const dates = feature.properties.lakeDepth
-        .map((entry) => {
-          const [datePart] = entry.Zeit.split(' ');
-          const parsedDate = new Date(datePart);
-          return parsedDate.getTime();
-        });
-      if (dates.length > 0) {
-        const minDate = new Date(Math.min(...dates));
-        const maxDate = new Date(Math.max(...dates));
-        if (!globalMinDate || minDate < globalMinDate)
-          globalMinDate = minDate;
-        if (!globalMaxDate || maxDate > globalMaxDate)
-          globalMaxDate = maxDate;
-      }
-    }
-  });
-  // globalMinDate.setFullYear(globalMinDate.getFullYear() + 1);
-  // globalMinDate.setDate(globalMinDate.getDate() + 1);
-  // globalMaxDate.setDate(globalMaxDate.getDate() + 1);
-  // console.log(globalMinDate,globalMaxDate)
-  if (globalMinDate && globalMaxDate) {
-    const dates = [];
-    const min = new Date(
-      globalMinDate.getFullYear(),
-      globalMinDate.getMonth(),
-      globalMinDate.getDate(),
-    );
 
-    const max = new Date(
-      globalMaxDate.getFullYear(),
-      globalMaxDate.getMonth(),
-      globalMaxDate.getDate(),
-    );
-    const current = new Date(min);
-    // eslint-disable-next-line no-unmodified-loop-condition
-    while (current <= max) {
-      dates.push(new Date(current.getFullYear(), current.getMonth(), current.getDate()));
-      current.setDate(current.getDate() + 1);
-    }
-    lakeDateOptions.value = dates;
-    selectedLakeDateIndex.value = dates.length - 1;
-  }
-  else {
-    lakeDateOptions.value = [];
-    selectedLakeDateIndex.value = 0;
-  }
-  selectedLakeDate.value = lakeDateOptions.value[selectedLakeDateIndex.value]?.toLocaleDateString('en-CA') || '';
-}
-watch(selectedIndex, async (newIndex) => {
+/* watch(selectedIndex, async (newIndex) => {
   selectedItem.value = null;
   selectedDate.value = dateOptions[newIndex];
   bathingWaterData.value = await fetchBathData(selectedDate.value);
 });
 watch(selectedLakeDateIndex, async (newIndex) => {
   selectedLakeDate.value = lakeDateOptions.value[newIndex]?.toISOString().split('T')[0] || '';
-});
+}); */
 watch(feature, async () => {
   if (feature.value === 'bathing') {
-    const { data: response, status } = useLazyFetch(`/api/opendataInputLayer?feature=${encodeURIComponent(feature.value)}`);
-    watch(status, () => {
-      if (status.value !== 'pending') {
-        console.warn(response.value);
-        bathingWaterData.value = response.value;
-      }
-    });
-    selectedIndex.value = dateOptions.length - 1;
-    // bathingWaterData.value = await fetchBathData(selectedDate.value);
-  }
-  else if (feature.value === 'busStops') {
-    busStopsData.value = await fetchBusStopData();
+    const { execute, data: response, status } = useLazyFetch(
+      `/api/opendataInputLayer?feature=${encodeURIComponent(feature.value)}`,
+      { immediate: false },
+    );
+    await execute();
+    if (status.value !== 'pending') {
+      fetchedData.value = response.value;
+      console.warn(fetchedData.value);
+      // selectedIndex.value = dateOptions.length - 1;
+    }
   }
   else if (feature.value === 'lakeData') {
-    lakeData.value = await fetchLakesData();
-    setLakeDepth();
+    const { execute, data: response, status } = useLazyFetch(
+      `/api/opendataInputLayer?feature=${encodeURIComponent(feature.value)}`,
+      { immediate: false },
+    );
+    await execute();
+    if (status.value !== 'pending') {
+      console.warn(response.value);
+      fetchedData.value = response.value;
+      // setLakeDepth();
+    }
   }
 });
+
 watch(locale, (newLocale) => {
   setLocale(newLocale);
 });

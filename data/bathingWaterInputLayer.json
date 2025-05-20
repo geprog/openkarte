@@ -98,9 +98,9 @@
     }
   ],
   "mappings": [
-    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-einstufung", "target_db_field": "BADEGEWAESSERID" },
-    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-messungen", "target_db_field": "BADEGEWAESSERID" },
-    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-saisondauer", "target_db_field": "BADEGEWAESSERID" },
-    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-infrastruktur-aktuell", "target_db_field": "BADEGEWAESSERID" }
+    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-einstufung", "target_db_field": "BADEGEWAESSERID", "label_option": "EINSTUFUNG_ODER_VORABBEWERTUNG" },
+    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-messungen", "target_db_field": "BADEGEWAESSERID", "label_option": "EINSTUFUNG_ODER_VORABBEWERTUNG" },
+    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-saisondauer", "target_db_field": "BADEGEWAESSERID", "label_option": "EINSTUFUNG_ODER_VORABBEWERTUNG" },
+    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-infrastruktur-aktuell", "target_db_field": "BADEGEWAESSERID", "label_option": "EINSTUFUNG_ODER_VORABBEWERTUNG" }
   ]
 }

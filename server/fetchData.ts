@@ -1,4 +1,4 @@
-import type { Dataset, InputJSON, StructuredDataset } from '~/server/prepareInput';
+import type { InputJSON } from '~/server/prepareInput';
 import proj4 from 'proj4';
 import { fetchCsvFromUrl } from '~/server/api/fetchDataFromFiles/fetch-csv';
 import { fetchJsonFromUrl } from '~/server/api/fetchDataFromFiles/fetch-json';
@@ -59,7 +59,6 @@ export async function fetchData(datasets: InputJSON) {
 
 export async function fetchBathingMappings(data: any[], datasets: InputJSON) {
   try {
-    // Find the base dataset once (you assume it's the "source" in every mapping)
     const baseDatasetId = datasets.mappings[0].source_db_id;
     const baseDataset = data.find((d: any) => d.id === baseDatasetId);
     if (!baseDataset)
@@ -67,51 +66,65 @@ export async function fetchBathingMappings(data: any[], datasets: InputJSON) {
 
     const merged = baseDataset.data.map((baseRow: any) => {
       const mergedRow = { ...baseRow };
-
-      // Loop over each mapping and try to find matching rows from other datasets
       datasets.mappings.forEach((m: any) => {
         const targetDataset = data.find((d: any) => d.id === m.target_db_id);
         if (!targetDataset)
           return;
 
-        // Find matching row(s) in the target dataset
         const match = targetDataset.data.find((row: any) =>
           row[m.target_db_field] === baseRow[m.source_db_field],
         );
-
         if (match) {
-          // Optionally prefix fields from target to avoid collision
           Object.entries(match).forEach(([key, value]) => {
-            mergedRow[`${m.target_db_id}_${key}`] = value;
+            mergedRow[`${key}`] = value;
           });
         }
+        mergedRow['labelOption'] = m.label_option;   
       });
-
       return mergedRow;
     });
-    console.warn(merged);
-    return merged;
+    const geojson = csvToGeoJSONFromRows(merged, 'GEOGR_BREITE', 'GEOGR_LAENGE');
+    return geojson;
   }
   catch (error) {
-    console.error('Error fetching Mappings', error);
+    console.error('Error fetching Bathing Mappings', error);
     throw error;
   }
 }
 
 export async function fetchLakesMappings(data: any, datasets: InputJSON) {
   try {
-    const mappingData = await Promise.all(
-      datasets.mappings.map((m: any) => {
-        const source = data.find((d: any) => d.id === m.source_db_id);
-        const target = data.find((d: any) => d.id === m.target_db_id);
-        if (m.condition === '=') {
-          // content
+    const baseDatasetId = datasets.mappings[0].source_db_id;
+    const baseDataset = data.find((d: any) => d.id === baseDatasetId);
+
+    if (!baseDataset)
+      throw new Error('Base dataset not found');
+    const features = baseDataset.data.features.map((baseRow: any) => {
+      const mergedRow: any = { ...baseRow };
+
+      datasets.mappings.forEach((m: any) => {
+        const targetDataset = data.find((d: any) => d.id === m.target_db_id);
+        if (!targetDataset)
+          return;
+
+        const baseValue = baseRow.properties.WK_NAME.toLowerCase();
+        if (baseValue.includes(m.target_db_field.toLowerCase())) {
+          if (!mergedRow.lakeDepth) {
+            mergedRow.lakeDepth = [];
+          }
+          mergedRow.lakeDepth.push(targetDataset.data);
         }
-      }),
-    );
+        mergedRow.properties.labelOption = m.label_option;
+      });
+      return mergedRow;
+    });
+    return {
+      type: 'FeatureCollection',
+      features,
+    };
   }
   catch (error) {
-    console.error('Error fetching Mappings', error);
+    console.error('Error fetching Lakes Mappings', error);
     throw error;
   }
 }
@@ -189,5 +202,35 @@ function reprojectGeoJSON<G extends GeoJSON.Geometry, P>(geojson: GeoJSON.Featur
         bbox: newBbox,
       };
     }),
+  };
+}
+
+function csvToGeoJSONFromRows(rows: Record<string, any>[], latKey = 'lat', lonKey = 'lon') {
+  const features = rows
+    .map((row) => {
+      const latitude = Number.parseFloat(row[latKey]);
+      const longitude = Number.parseFloat(row[lonKey]);
+
+      if (Number.isNaN(latitude) || Number.isNaN(longitude))
+        return null;
+
+      const properties = { ...row };
+      delete properties[latKey];
+      delete properties[lonKey];
+
+      return {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [longitude, latitude],
+        },
+        properties,
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    type: 'FeatureCollection',
+    features,
   };
 }
