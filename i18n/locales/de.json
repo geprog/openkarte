@@ -12,5 +12,11 @@
   "selectedDate": "Gewähltes Datum",
   "waterLevelOfLake": "Wasserpegel des Sees",
   "waterLevel": "Wasserpegel",
-  "notAvailable": "Nicht verfügbar"
+  "notAvailable": "Nicht verfügbar",
+  "loadingText": "Laden der Daten, bitte warten...",
+  "chartX": "Datum",
+  "chartY": "Tiefe (m)",
+  "chartTitle": "Tiefe für",
+  "chartLegend": "Tiefe im Zeitverlauf",
+  "chartEmpty": "Es sind keine Tiefenangaben verfügbar für"
 }

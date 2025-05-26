@@ -54,13 +54,6 @@
           </li>
           <li
             class="cursor-pointer hover:text-blue-200"
-            :class="{ 'font-bold underline': feature === 'busStops' }"
-            @click="setFeature('busStops')"
-          >
-            {{ t('busStops') }}
-          </li>
-          <li
-            class="cursor-pointer hover:text-blue-200"
             :class="{ 'font-bold underline': feature === 'lakeData' }"
             @click="setFeature('lakeData')"
           >
@@ -70,76 +63,33 @@
       </aside>
 
       <main class="flex-1 relative">
-        <MyLeafletMap :water-bodies="bathingWaterData" :bus-stops="busStopsData" :lake-data="lakeData" :feature-display="feature" :selected-lake-date="selectedLakeDate" @marker-click="selectedItem = $event" />
-        <div v-if="feature === 'bathing'" class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-white dark:bg-slate-900 bg-opacity-80 dark:bg-opacity-80">
-          <div class="relative w-full h-2 rounded overflow-hidden">
-            <div
-              v-for="(group) in groupedDates"
-              :key="group.year"
-              class="absolute h-full"
-              :style="{
-                left: `${group.offset}%`,
-                width: `${group.width}%`,
-                backgroundColor: group.color,
-              }"
-            />
-          </div>
-          <input
-            v-model="selectedIndex"
-            type="range"
-            :min="0"
-            :max="dateOptions.length - 1"
-            class="custom-slider w-full relative z-10"
-          >
-          <div class="relative w-full h-5">
-            <span
-              v-for="group in groupedDates"
-              :key="group.year"
-              class="absolute text-sm text-white"
-              :style="{
-                left: `${parseFloat(group.offset) + parseFloat(group.width) / 2}%`,
-                transform: 'translateX(-50%)',
-                fontSize: isSmallScreen ? '0.50rem' : '1rem',
-              }"
-            >
-              {{ group.year }}
-            </span>
-          </div>
-          <div class="mt-2 text-center text-black dark:text-white font-semibold">
-            {{ t('selectedDate') }}: {{ selectedDate }}
-          </div>
-        </div>
-        <div v-if="feature === 'lakeData'" class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-white dark:bg-slate-900 bg-opacity-80 dark:bg-opacity-80">
-          <input
-            v-model="selectedLakeDateIndex"
-            type="range"
-            :min="0"
-            :max="lakeDateOptions.length - 1"
-            class="w-full relative z-10"
-          >
-          <div class="mt-2 text-center text-black dark:text-white font-semibold">
-            {{ t('selectedDate') }}: {{ selectedLakeDate }}
-          </div>
-        </div>
         <div
-          v-if="selectedItem"
-          class="absolute bottom-30 left-1/2 transform -translate-x-1/2 bg-white dark:bg-slate-900 text-black dark:text-white p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-xl"
+          v-if="loading"
+          class="absolute inset-0 z-[9999] flex items-center justify-center bg-white/50 backdrop-blur-sm cursor-not-allowed"
         >
-          <div class="flex justify-between items-center">
-            <h2 class="text-lg font-bold text-black dark:text-white">
-              {{ selectedItem.bathing.BADEGEWAESSERNAME }}
-            </h2>
-            <button class="text-black dark:text-white text-xl" @click="selectedItem = null">
-              &times;
-            </button>
-          </div>
-          <ul class="mt-2 space-y-1 text-sm text-black dark:text-white">
-            <li><strong>{{ t('quality') }}:</strong> {{ selectedItem.classification?.EINSTUFUNG_ODER_VORABBEWERTUNG || 'N/A' }}</li>
-            <li><strong>{{ t('category') }}:</strong> {{ selectedItem.measurements?.GEWAESSERKATEGORIE || 'N/A' }}</li>
-            <li><strong>{{ t('depth') }}:</strong> {{ selectedItem.measurements?.SICHTTIEFE || 'N/A' }}</li>
-            <li><strong>{{ t('seasonal') }}:</strong> {{ selectedItem.seasonal?.SAISONBEGINN }} - {{ selectedItem.seasonal?.SAISONENDE }} {{ selectedItem.seasonal?.GESCHLOSSEN || 'N/A' }} </li>
-            <li><strong>{{ t('infrastructure') }}:</strong> {{ selectedItem.infrastructure?.INFRASTRUKTUR || 'N/A' }}</li>
-          </ul>
+          <LoadingSpinner />
+        </div>
+
+        <MyLeafletMap :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
+        <Slider
+          v-if="feature === 'bathing' && dateOptions"
+          :date-group="dateGroup"
+          :date-options="dateOptions"
+          :selected-index="selectedIndex"
+          :selected-date="selectedDate"
+          :is-small-screen="isSmallScreen"
+          @update:selected-index="selectedIndex = $event"
+        />
+        <PopupInfo
+          v-if="selectedItem && feature === 'bathing'"
+          :selected-item="selectedItem"
+          @close="selectedItem = null"
+        />
+        <div
+          v-if="selectedItem && feature === 'lakeData'"
+          class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-2xl"
+        >
+          <LineChart v-if="selectedItem" :chart-data="chartData" :lake-name="lakeName" class="mt-4" @close="selectedItem = null" />
         </div>
       </main>
     </div>
@@ -148,13 +98,22 @@
 
 <script setup lang="ts">
 import type { SelectItem } from '@nuxt/ui';
-import type { LakeDepth, MergedData } from '~/composables/useFetchOpenData';
+import LoadingSpinner from '@/components/LoadingSpinner.vue';
 import { computed, ref, watch } from 'vue';
+import LineChart from '~/components/LineChart.vue';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
-import { fetchBathData, fetchBusStopData, fetchLakesData } from '~/composables/useFetchOpenData';
-// import layout from '/layout.json';
+import PopupInfo from '~/components/PopupInfo.vue';
+import Slider from '~/components/Slider.vue';
+import { getDateOptions, getDatesGroups } from '~/composables/useSliderDates';
 
 const { t, locale, setLocale } = useI18n();
+const isSmallScreen = computed(() => {
+  return window.innerWidth < 768;
+});
+const sidebarOpen = ref(false);
+const fetchedData = ref();
+const seriesData = ref([]);
+type FeatureType = 'bathing' | 'lakeData';
 const colorMode = useColorMode();
 
 const isDark = computed({
@@ -169,165 +128,66 @@ const isDark = computed({
 const localeItems = ref([{ value: 'en', icon: 'i-emojione-v1-flag-for-united-kingdom' }, { value: 'de', icon: 'i-emojione-v1-flag-for-germany' }] satisfies SelectItem[]);
 const selectedLocaleIcon = computed(() => localeItems.value.find(item => item.value === locale.value)?.icon);
 
-const isSmallScreen = computed(() => {
-  return window.innerWidth < 768;
-});
-const sidebarOpen = ref(true);
-const bathingWaterData = ref<MergedData[]>([]);
-const busStopsData = ref<GeoJSON.Feature<GeoJSON.Point, unknown>[]>();
-const lakeData = ref<GeoJSON.Feature<GeoJSON.Geometry, { WK_NAME: string, lakeDepth: LakeDepth[] }>[]>();
-type FeatureType = 'bathing' | 'busStops' | 'lakeData';
 const feature = ref<FeatureType | null>(null);
-const dateOptions = [
-  '2021-02-10',
-  '2021-03-01',
-  '2021-04-24',
-  '2021-05-01',
-  '2021-05-05',
-  '2021-05-07',
-  '2021-05-18',
-  '2021-06-16',
-  '2021-07-01',
-  '2021-07-03',
-  '2021-07-17',
-  '2021-08-06',
-  '2021-08-14',
-  '2022-04-01',
-  '2022-05-01',
-  '2022-06-01',
-  '2022-07-01',
-  '2022-08-01',
-  '2022-09-01',
-  '2022-12-01',
-  '2023-03-01',
-  '2023-06-01',
-  '2023-07-01',
-  '2023-08-01',
-  '2023-10-01',
-  '2023-11-01',
-  '2024-05-01',
-  '2024-06-01',
-  '2024-11-01',
-  '2025-04-01',
-];
-
 const selectedIndex = ref(0);
-const selectedDate = ref(dateOptions[selectedIndex.value]);
-const selectedItem = ref<MergedData | null>(null);
-let globalMinDate: Date | null = null;
-let globalMaxDate: Date | null = null;
-const selectedLakeDateIndex = ref(0);
-const selectedLakeDate = ref('');
-const lakeDateOptions = ref<Date[]>([]);
+const selectedItem = ref<any | null>(null);
+const selectedDate = ref();
+let dateOptions: any[];
+let dateGroup: any;
+let lakeName: string;
+const loading = ref(false);
 
-const yearColors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
-
-const groupedDates = computed(() => {
-  const yearGroups = new Map<string, string[]>();
-
-  dateOptions.forEach((date) => {
-    const year = date.slice(0, 4);
-    if (!yearGroups.has(year)) {
-      yearGroups.set(year, []);
-    }
-    yearGroups.get(year)!.push(date);
-  });
-
-  const total = dateOptions.length;
-  let offset = 0;
-
-  return Array.from(yearGroups.entries()).map(([year, dates], i) => {
-    const width = (dates.length / total) * 100;
-    const group = {
-      year,
-      width: width.toFixed(2),
-      offset: offset.toFixed(2),
-      color: yearColors[i % yearColors.length],
-    };
-    offset += width;
-    return group;
-  });
+const chartData = computed(() => {
+  if (!selectedItem.value?.lakeDepth[0]) {
+    lakeName = selectedItem.value.properties.WK_NAME;
+    return [];
+  }
+  lakeName = selectedItem.value.properties.WK_NAME;
+  return selectedItem.value.lakeDepth[0].map((entry: any) => ({
+    date: entry.Zeit,
+    value: entry.wasserstand,
+  }));
 });
 
 function setFeature(f: FeatureType) {
   feature.value = f;
 }
 
-function setLakeDepth() {
-  if (!lakeData.value) {
-    return;
-  }
-  lakeData.value.forEach((feature) => {
-    if (Array.isArray(feature.properties.lakeDepth) && feature.properties.lakeDepth.length > 0) {
-      const dates = feature.properties.lakeDepth
-        .map((entry) => {
-          const [datePart] = entry.Zeit.split(' ');
-          const parsedDate = new Date(datePart);
-          return parsedDate.getTime();
-        });
-      if (dates.length > 0) {
-        const minDate = new Date(Math.min(...dates));
-        const maxDate = new Date(Math.max(...dates));
-        if (!globalMinDate || minDate < globalMinDate)
-          globalMinDate = minDate;
-        if (!globalMaxDate || maxDate > globalMaxDate)
-          globalMaxDate = maxDate;
-      }
-    }
-  });
-  // globalMinDate.setFullYear(globalMinDate.getFullYear() + 1);
-  // globalMinDate.setDate(globalMinDate.getDate() + 1);
-  // globalMaxDate.setDate(globalMaxDate.getDate() + 1);
-  // console.log(globalMinDate,globalMaxDate)
-  if (globalMinDate && globalMaxDate) {
-    const dates = [];
-    const min = new Date(
-      globalMinDate.getFullYear(),
-      globalMinDate.getMonth(),
-      globalMinDate.getDate(),
-    );
-
-    const max = new Date(
-      globalMaxDate.getFullYear(),
-      globalMaxDate.getMonth(),
-      globalMaxDate.getDate(),
-    );
-    const current = new Date(min);
-    // eslint-disable-next-line no-unmodified-loop-condition
-    while (current <= max) {
-      dates.push(new Date(current.getFullYear(), current.getMonth(), current.getDate()));
-      current.setDate(current.getDate() + 1);
-    }
-    lakeDateOptions.value = dates;
-    selectedLakeDateIndex.value = dates.length - 1;
-  }
-  else {
-    lakeDateOptions.value = [];
-    selectedLakeDateIndex.value = 0;
-  }
-  selectedLakeDate.value = lakeDateOptions.value[selectedLakeDateIndex.value]?.toLocaleDateString('en-CA') || '';
-}
 watch(selectedIndex, async (newIndex) => {
   selectedItem.value = null;
   selectedDate.value = dateOptions[newIndex];
-  bathingWaterData.value = await fetchBathData(selectedDate.value);
+  fetchedData.value = seriesData.value[newIndex];
 });
-watch(selectedLakeDateIndex, async (newIndex) => {
-  selectedLakeDate.value = lakeDateOptions.value[newIndex]?.toISOString().split('T')[0] || '';
-});
+
 watch(feature, async () => {
-  if (feature.value === 'bathing') {
-    selectedIndex.value = dateOptions.length - 1;
-    bathingWaterData.value = await fetchBathData(selectedDate.value);
+  loading.value = true;
+  if (feature.value) {
+    const { execute, data: response, status } = useLazyFetch(
+      `/api/fetchOpenData?feature=${encodeURIComponent(feature.value)}`,
+      { immediate: false },
+    );
+
+    await execute();
+
+    if (status.value !== 'pending') {
+      if (feature.value === 'bathing') {
+        fetchedData.value = [];
+        seriesData.value = [];
+        seriesData.value = response.value;
+        dateOptions = getDateOptions(seriesData.value);
+        dateGroup = getDatesGroups(seriesData.value);
+        selectedIndex.value = dateOptions.length - 1;
+        selectedDate.value = dateOptions[selectedIndex.value];
+      }
+      else if (feature.value === 'lakeData') {
+        fetchedData.value = [];
+        fetchedData.value = response.value;
+      }
+    }
   }
-  else if (feature.value === 'busStops') {
-    busStopsData.value = await fetchBusStopData();
-  }
-  else if (feature.value === 'lakeData') {
-    lakeData.value = await fetchLakesData();
-    setLakeDepth();
-  }
+  loading.value = false;
 });
+
 watch(locale, (newLocale) => {
   setLocale(newLocale);
 });
