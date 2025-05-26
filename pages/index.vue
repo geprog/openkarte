@@ -18,15 +18,18 @@
         </button>
         <span class="text-lg font-semibold">{{ t('openMap') }}</span>
       </div>
-      <div class="px-4">
-        <select v-model="locale" class="rounded py-1">
-          <option value="en">
-            English
-          </option>
-          <option value="de">
-            Deutsch
-          </option>
-        </select>
+      <div v-if="feature" class="text-lg font-semibold">
+        {{ t(feature) }}
+      </div>
+      <div class="flex gap-4 px-4">
+        <UButton
+          :icon="isDark ? 'i-lucide-moon' : 'i-lucide-sun'"
+          color="neutral"
+          variant="ghost"
+          @click="isDark = !isDark"
+        />
+
+        <USelect v-model="locale" :items="localeItems" :icon="selectedLocaleIcon" :ui="{ placeholder: 'hidden' }" />
       </div>
     </header>
 
@@ -47,14 +50,14 @@
             :class="{ 'font-bold underline': feature === 'bathing' }"
             @click="setFeature('bathing')"
           >
-            {{ t('bathingWater') }}
+            {{ t('bathing') }}
           </li>
           <li
             class="cursor-pointer hover:text-blue-200"
             :class="{ 'font-bold underline': feature === 'lakeData' }"
             @click="setFeature('lakeData')"
           >
-            {{ t('lakesData') }}
+            {{ t('lakeData') }}
           </li>
         </ul>
       </aside>
@@ -110,6 +113,20 @@ const sidebarOpen = ref(false);
 const fetchedData = ref();
 const seriesData = ref([]);
 type FeatureType = 'bathing' | 'lakeData';
+const colorMode = useColorMode();
+
+const isDark = computed({
+  get() {
+    return colorMode.value === 'dark';
+  },
+  set(_isDark) {
+    colorMode.preference = _isDark ? 'dark' : 'light';
+  },
+});
+
+const localeItems = ref([{ value: 'en', icon: 'i-emojione-v1-flag-for-united-kingdom' }, { value: 'de', icon: 'i-emojione-v1-flag-for-germany' }] satisfies SelectItem[]);
+const selectedLocaleIcon = computed(() => localeItems.value.find(item => item.value === locale.value)?.icon);
+
 const feature = ref<FeatureType | null>(null);
 const selectedIndex = ref(0);
 const selectedItem = ref<any | null>(null);
@@ -133,7 +150,6 @@ const chartData = computed(() => {
 
 function setFeature(f: FeatureType) {
   feature.value = f;
-  sidebarOpen.value = false;
 }
 
 watch(selectedIndex, async (newIndex) => {

@@ -5,7 +5,7 @@
 <script setup lang="ts">
 import type { FeatureCollection } from 'geojson';
 import L, { Control } from 'leaflet';
-import { defineEmits, onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
