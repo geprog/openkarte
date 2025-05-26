@@ -60,13 +60,19 @@ function generateLabels(data: typeof props.fetchedData) {
 
     legend.onAdd = function () {
       const div = L.DomUtil.create('div', 'info legend');
+      div.setAttribute(
+        'style',
+        'background: white; padding: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);',
+      );
+
       uniqueValues.forEach((value) => {
         const color = colorMap.get(value);
         div.innerHTML += `
-          <div style="color:black; margin-bottom:4px;">
-            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${value}
-          </div>`;
+      <div style="color:black; margin-bottom:4px;">
+        <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${value}
+      </div>`;
       });
+
       return div;
     };
   }
@@ -107,14 +113,20 @@ function generateLabels(data: typeof props.fetchedData) {
 
     legend.onAdd = function () {
       const div = L.DomUtil.create('div', 'info legend');
+      div.setAttribute(
+        'style',
+        'background: white; padding: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);',
+      );
+
       bins.forEach(([start, end]) => {
         const label = `${start.toFixed(1)} - ${end.toFixed(1)}`;
         const color = colorMap.get(label);
         div.innerHTML += `
-          <div style="color:black; margin-bottom:4px;">
-            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
-          </div>`;
+      <div style="color:black; margin-bottom:4px;">
+        <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
+      </div>`;
       });
+
       return div;
     };
 
@@ -137,14 +149,14 @@ function generateColor(index: number, total: number): string {
 }
 
 function renderMarkers(data: typeof props.fetchedData) {
-  if (!data) {
+  if (!data)
     return;
-  }
 
   clearMarkers();
   clearLegend();
 
   const colorMap = generateLabels(data);
+  const originalMarkerStyleMap = new Map<L.Layer, any>();
 
   data.features.forEach((feature: any) => {
     const legendOption = feature.properties.options.legend_option;
@@ -166,36 +178,40 @@ function renderMarkers(data: typeof props.fetchedData) {
         fillOpacity: 0.7,
       }),
       pointToLayer: (feature, latlng) => {
-        return L.circleMarker(latlng, {
+        const style = {
           radius: 6,
           color,
           fillColor: color,
           fillOpacity: 0.8,
           weight: 1,
-        });
+        };
+
+        const marker = L.circleMarker(latlng, style);
+        originalMarkerStyleMap.set(marker, style);
+        return marker;
       },
       onEachFeature: (feature, layer) => {
         layer.on('click', () => {
-          if (selectedMarker instanceof L.Path && 'setStyle' in selectedMarker) {
-            selectedMarker.setStyle({
-              weight: 1,
-              color: '#999999',
-            });
+          if (selectedMarker instanceof L.CircleMarker && originalMarkerStyleMap.has(selectedMarker)) {
+            selectedMarker.setStyle(originalMarkerStyleMap.get(selectedMarker));
           }
-
           if (layer instanceof L.CircleMarker) {
             layer.setStyle({
               radius: 10,
               weight: 3,
               color: '#0f172b',
+              fillColor: '#0f172b',
+              fillOpacity: 1,
             });
           }
+
           selectedMarker = layer;
           // eslint-disable-next-line vue/custom-event-name-casing
           emit('marker-click', feature);
         });
       },
     });
+
     geoJsonLayer.addTo(leafletMap as L.Map);
     geoJsonLayers.push(geoJsonLayer);
   });

@@ -60,6 +60,13 @@
       </aside>
 
       <main class="flex-1 relative">
+        <div
+          v-if="loading"
+          class="absolute inset-0 z-[9999] flex items-center justify-center bg-white/50 backdrop-blur-sm cursor-not-allowed"
+        >
+          <LoadingSpinner />
+        </div>
+
         <MyLeafletMap :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
         <Slider
           v-if="feature === 'bathing' && dateOptions"
@@ -87,6 +94,7 @@
 </template>
 
 <script setup lang="ts">
+import LoadingSpinner from '@/components/LoadingSpinner.vue';
 import { computed, ref, watch } from 'vue';
 import LineChart from '~/components/LineChart.vue';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
@@ -109,10 +117,13 @@ const selectedDate = ref();
 let dateOptions: any[];
 let dateGroup: any;
 let lakeName: string;
+const loading = ref(false);
 
 const chartData = computed(() => {
-  if (!selectedItem.value?.lakeDepth[0])
+  if (!selectedItem.value?.lakeDepth[0]) {
+    lakeName = selectedItem.value.properties.WK_NAME;
     return [];
+  }
   lakeName = selectedItem.value.properties.WK_NAME;
   return selectedItem.value.lakeDepth[0].map((entry: any) => ({
     date: entry.Zeit,
@@ -132,34 +143,34 @@ watch(selectedIndex, async (newIndex) => {
 });
 
 watch(feature, async () => {
-  if (feature.value === 'bathing') {
+  loading.value = true;
+  if (feature.value) {
     const { execute, data: response, status } = useLazyFetch(
       `/api/opendataInputLayer?feature=${encodeURIComponent(feature.value)}`,
       { immediate: false },
     );
+
     await execute();
+
     if (status.value !== 'pending') {
-      fetchedData.value = [];
-      seriesData.value = [];
-      seriesData.value = response.value;
-      dateOptions = getDateOptions(seriesData.value);
-      dateGroup = getDatesGroups(seriesData.value);
-      selectedIndex.value = dateOptions.length - 1;
-      selectedDate.value = dateOptions[selectedIndex.value];
+      if (feature.value === 'bathing') {
+        fetchedData.value = [];
+        seriesData.value = [];
+        seriesData.value = response.value;
+        dateOptions = getDateOptions(seriesData.value);
+        dateGroup = getDatesGroups(seriesData.value);
+        selectedIndex.value = dateOptions.length - 1;
+        selectedDate.value = dateOptions[selectedIndex.value];
+      }
+      else if (feature.value === 'lakeData') {
+        fetchedData.value = [];
+        fetchedData.value = response.value;
+      }
     }
   }
-  else if (feature.value === 'lakeData') {
-    const { execute, data: response, status } = useLazyFetch(
-      `/api/opendataInputLayer?feature=${encodeURIComponent(feature.value)}`,
-      { immediate: false },
-    );
-    await execute();
-    if (status.value !== 'pending') {
-      fetchedData.value = [];
-      fetchedData.value = response.value;
-    }
-  }
+  loading.value = false;
 });
+
 watch(locale, (newLocale) => {
   setLocale(newLocale);
 });
