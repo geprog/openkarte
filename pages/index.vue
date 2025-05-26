@@ -146,7 +146,7 @@ watch(feature, async () => {
   loading.value = true;
   if (feature.value) {
     const { execute, data: response, status } = useLazyFetch(
-      `/api/opendataInputLayer?feature=${encodeURIComponent(feature.value)}`,
+      `/api/fetchOpenData?feature=${encodeURIComponent(feature.value)}`,
       { immediate: false },
     );
 
