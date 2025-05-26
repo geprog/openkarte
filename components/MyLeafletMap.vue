@@ -4,24 +4,21 @@
 
 <script setup lang="ts">
 import type { FeatureCollection } from 'geojson';
-import type { MergedData } from '~/composables/useFetchOpenData';
 import L, { Control } from 'leaflet';
 import { defineEmits, onMounted, ref, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-// light yellow to dark red
 
 const props = defineProps<{
   fetchedData: FeatureCollection
-  selectedLakeDate?: string
 }>();
 const emit = defineEmits<{
-  (e: 'marker-click', data: MergedData): void
+  (e: 'marker-click', data: any): void
 }>();
-const markers: L.Layer[] = [];
-let selectedMarker: L.CircleMarker | null = null;
+let selectedMarker: L.Layer | null = null;
 let legendControl: L.Control | null = null;
+const geoJsonLayers: L.GeoJSON[] = [];
 
 const map = ref<HTMLDivElement | null>(null);
 
@@ -29,42 +26,107 @@ const map = ref<HTMLDivElement | null>(null);
 
 let leafletMap: L.Map | null = null;
 
-/* function getColorForDepth(depth: number | undefined, minDepth: number, maxDepth: number): string {
-  if (depth === undefined) {
-    return 'rgb(150, 150, 150)';
+function findValueByKey(obj: any, key: string): any {
+  if (typeof obj !== 'object' || obj === null) {
+    return undefined;
   }
-  if (minDepth === maxDepth)
-    return 'rgb(255,0,0)'; // fallback if all depths are same
-  const ratio = (depth - minDepth) / (maxDepth - minDepth);
-  const red = Math.floor(255 * ratio);
-  const blue = Math.floor(255 * (1 - ratio));
-  return `rgb(${red},0,${blue})`;
-} */
+  if (key in obj) {
+    return obj[key];
+  }
+  for (const value of Object.values(obj)) {
+    const result = findValueByKey(value, key);
+    if (result !== undefined)
+      return result;
+  }
+  return undefined;
+}
 
 function generateLabels(data: typeof props.fetchedData) {
-  const uniqueValues = Array.from(
-    new Set(data.features.map((f: any) => f.properties[f.properties.labelOption] || 'default')),
-  );
   const colorMap = new Map<string, string>();
-  uniqueValues.forEach((value, i) => {
-    colorMap.set(value, generateColor(i, uniqueValues.length));
-  });
   const legend = new Control({ position: 'topleft' });
 
-  legend.onAdd = function () {
-    const div = L.DomUtil.create('div', 'info legend');
-    uniqueValues.forEach((value) => {
-      const color = colorMap.get(value);
-      div.innerHTML += `
-      <div style="color:black; margin-bottom:4px;">
-        <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${value}
-      </div>`;
-    });
-    return div;
-  };
+  const legendDisplayOption = Array.from(
+    new Set(data.features.map((f: any) => f.properties.options.legend_option || 'default')),
+  );
 
+  const labelKey = data.features[0]?.properties?.options?.label_option;
+  const rawValues = data.features.map((f: any) => findValueByKey(f, labelKey));
+  const uniqueValues = Array.from(new Set(rawValues.map(v => v ?? 'default')));
+
+  if (legendDisplayOption[0] === 'default') {
+    uniqueValues.forEach((value, i) => {
+      colorMap.set(value, generateColor(i, uniqueValues.length));
+    });
+
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'info legend');
+      uniqueValues.forEach((value) => {
+        const color = colorMap.get(value);
+        div.innerHTML += `
+          <div style="color:black; margin-bottom:4px;">
+            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${value}
+          </div>`;
+      });
+      return div;
+    };
+  }
+  else if (legendDisplayOption[0] === 'colorVarient') {
+    const numericValues = uniqueValues
+      .map(v => +v)
+      .filter(v => !Number.isNaN(v));
+
+    if (numericValues.length === 0)
+      return colorMap;
+
+    const min = Math.min(...numericValues);
+    const max = Math.max(...numericValues);
+
+    const numBins = 5;
+    const step = (max - min) / numBins;
+
+    const bins: [number, number][] = [];
+    for (let i = 0; i < numBins; i++) {
+      const start = min + i * step;
+      const end = i === numBins - 1 ? max : start + step;
+      bins.push([start, end]);
+    }
+
+    bins.forEach(([start, end], i) => {
+      const label = `${start.toFixed(1)} - ${end.toFixed(1)}`;
+      colorMap.set(label, generateColor(i, bins.length));
+    });
+
+    function getBinLabel(value: number): string {
+      for (const [start, end] of bins) {
+        if (value >= start && value <= end) {
+          return `${start.toFixed(1)} - ${end.toFixed(1)}`;
+        }
+      }
+      return 'default';
+    }
+
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'info legend');
+      bins.forEach(([start, end]) => {
+        const label = `${start.toFixed(1)} - ${end.toFixed(1)}`;
+        const color = colorMap.get(label);
+        div.innerHTML += `
+          <div style="color:black; margin-bottom:4px;">
+            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
+          </div>`;
+      });
+      return div;
+    };
+
+    data.features.forEach((f: any) => {
+      const val = +findValueByKey(f, labelKey);
+      const binLabel = getBinLabel(val);
+      f.__binLabel = binLabel;
+    });
+  }
   if (leafletMap) {
     legend.addTo(leafletMap);
+    legendControl = legend;
   }
   return colorMap;
 }
@@ -85,8 +147,15 @@ function renderMarkers(data: typeof props.fetchedData) {
   const colorMap = generateLabels(data);
 
   data.features.forEach((feature: any) => {
-    const value = feature.properties[feature.properties.labelOption] || 'default';
-    const color = colorMap.get(value) ?? '#999';
+    const legendOption = feature.properties.options.legend_option;
+    const labelOption = feature.properties.options.label_option;
+    let key = feature.properties[labelOption];
+
+    if (legendOption === 'colorVarient') {
+      key = feature.__binLabel;
+    }
+
+    const color = colorMap.get(key) ?? '#999';
 
     const geoJsonLayer = L.geoJSON(feature, {
       style: () => ({
@@ -105,136 +174,37 @@ function renderMarkers(data: typeof props.fetchedData) {
           weight: 1,
         });
       },
-    });
-
-    geoJsonLayer.eachLayer((layer: any) => {
-      if (layer instanceof L.CircleMarker) {
+      onEachFeature: (feature, layer) => {
         layer.on('click', () => {
-          if (selectedMarker) {
+          if (selectedMarker instanceof L.Path && 'setStyle' in selectedMarker) {
             selectedMarker.setStyle({
-              radius: 6,
               weight: 1,
-              color: selectedMarker.options.fillColor ?? '#999999',
+              color: '#999999',
             });
           }
 
-          layer.setStyle({
-            radius: 10,
-            weight: 3,
-            color: '#0f172b',
-          });
-
+          if (layer instanceof L.CircleMarker) {
+            layer.setStyle({
+              radius: 10,
+              weight: 3,
+              color: '#0f172b',
+            });
+          }
           selectedMarker = layer;
           // eslint-disable-next-line vue/custom-event-name-casing
           emit('marker-click', feature);
         });
-      }
+      },
     });
-
     geoJsonLayer.addTo(leafletMap as L.Map);
+    geoJsonLayers.push(geoJsonLayer);
   });
 }
 
-
-/* function renderLakesMarkers(data: typeof props.lakeData, selectedDate?: string) {
-  if (!data) {
-    return;
-  }
-  clearLakeMarkers();
-  const matchedDepth: number[] = [];
-
-  data.forEach((feature) => {
-    if (feature.properties.lakeDepth.length > 0 && selectedDate) {
-      const date = new Date(selectedDate);
-      const matched = feature.properties.lakeDepth.reduce<LakeDepth | undefined>((nearest, lakeDepth) => {
-        const [datePart] = lakeDepth.Zeit.split(' ');
-        const zeit = new Date(datePart);
-        if (zeit.getTime() <= date.getTime()) {
-          if (!nearest) {
-            return lakeDepth;
-          }
-          const [nearestDatePart] = lakeDepth.Zeit.split(' ');
-          const nearestZeit = new Date(nearestDatePart);
-          if (nearestZeit.getTime() > zeit.getTime()) {
-            return nearest;
-          }
-          return lakeDepth;
-        }
-        return nearest;
-      }, undefined);
-      if (matched) {
-        matchedDepth.push(Number.parseFloat(matched.wasserstand));
-      }
-    }
-  });
-  const minDepth = 0;
-  const maxDepth = Math.max(...matchedDepth, 0);
-
-  data.forEach((feature) => {
-    if (feature.properties.lakeDepth.length > 0 && selectedDate) {
-      const date = new Date(selectedDate);
-      const matched = feature.properties.lakeDepth.reduce<LakeDepth | undefined>((nearest, lakeDepth) => {
-        const [datePart] = lakeDepth.Zeit.split(' ');
-        const zeit = new Date(datePart);
-        if (zeit.getTime() <= date.getTime()) {
-          if (!nearest) {
-            return lakeDepth;
-          }
-          const [nearestDatePart] = lakeDepth.Zeit.split(' ');
-          const nearestZeit = new Date(nearestDatePart);
-          if (nearestZeit.getTime() > zeit.getTime()) {
-            return nearest;
-          }
-          return lakeDepth;
-        }
-        return nearest;
-      }, undefined);
-
-      const depth = matched ? Number.parseFloat(matched.wasserstand) : undefined;
-      const fillColor = getColorForDepth(depth, minDepth, maxDepth);
-      const depthLabel = `${t('waterLevel')}: ${depth !== undefined ? `${depth.toFixed(2)} cm` : t('notAvailable')}`;
-
-      const geom = feature.geometry;
-      if (geom.type === 'Point' || geom.type === 'LineString' || geom.type === 'MultiPoint' || geom.type === 'GeometryCollection') {
-        return;
-      }
-      const latlngs: L.LatLngExpression[][] = geom.type === 'MultiPolygon'
-        ? geom.coordinates.map(polygon => polygon[0].map(([x, y]) => [y, x]))
-        : [geom.coordinates[0].map(([x, y]) => [y, x])];
-
-      const polygon = L.polygon(latlngs, {
-        color: fillColor,
-        weight: 2,
-        fillOpacity: 0.5,
-      }).addTo(leafletMap as L.Map);
-
-      polygon.bindTooltip(L.tooltip({ content: `<b>${feature.properties.WK_NAME}</b><br />${depthLabel}` }));
-      lakeMarkers.push(polygon);
-    }
-  });
-
-  // --- Gradient Legend ---
-  clearLegend();
-  legendControl = new L.Control({ position: 'topleft' });
-  legendControl.onAdd = () => {
-    const div = L.DomUtil.create('div', 'info legend');
-    div.innerHTML += `
-      <span style="color:black">${t('waterLevelOfLake')}</span>
-      <div style="background: linear-gradient(to right, rgb(0,0,255), rgb(255,0,0)); height: 10px; width: 250px; margin-bottom: 4px;"></div>
-      <div style="display: flex; justify-content: space-between; font-size: 12px;">
-        <span style="color:black">0 cm</span>
-        <span style="color:black">${maxDepth.toFixed(2)} cm</span>
-      </div>
-    `;
-    return div;
-  };
-  legendControl.addTo(leafletMap as L.Map);
-} */
-
 function clearMarkers() {
   if (leafletMap) {
-    markers.forEach(marker => leafletMap!.removeLayer(marker));
-    markers.length = 0;
+    geoJsonLayers.forEach(layer => leafletMap!.removeLayer(layer));
+    geoJsonLayers.length = 0;
   }
 }
 
@@ -269,24 +239,4 @@ watch(() => props.fetchedData, (newData) => {
     renderMarkers(newData);
   }
 }, { immediate: true });
-
-/* watch(() => props.lakeData, (lakes) => {
-  if (lakes && Array.isArray(lakes)) {
-    clearLegend();
-    clearMarkers();
-    clearBusStopMarkers();
-    renderLakesMarkers(lakes, props.selectedLakeDate);
-  }
-  else {
-    clearLegend();
-    clearMarkers();
-    clearBusStopMarkers();
-    clearLakeMarkers();
-  }
-});
-watch(() => props.selectedLakeDate, (newDate) => {
-  if (props.lakeData) {
-    renderLakesMarkers(props.lakeData, newDate);
-  }
-}); */
 </script>

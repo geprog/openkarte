@@ -1,8 +1,8 @@
 import type { InputJSON } from '~/server/prepareInput';
 import proj4 from 'proj4';
-import { fetchCsvFromUrl } from '~/server/api/fetchDataFromFiles/fetch-csv';
-import { fetchJsonFromUrl } from '~/server/api/fetchDataFromFiles/fetch-json';
-import { fetchZipFromUrl } from '~/server/api/fetchDataFromFiles/fetch-zip';
+import { fetchCsvFromUrl } from '~/server/utils/fetch-csv';
+import { fetchJsonFromUrl } from '~/server/utils/fetch-json';
+import { fetchZipFromUrl } from '~/server/utils/fetch-zip';
 
 proj4.defs('EPSG:25832', '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs');
 const fromProjection = 'EPSG:25832';
@@ -14,6 +14,27 @@ const ALLOWED_HOSTS = [
   'geoservice.norderstedt.de',
   'hsi-sh.de',
 ];
+
+export async function fetchSeriesData(s: any, dataset: any) {
+  try {
+    const url = `https://${dataset.host}/api/action/package_show?id=${s.__extras.subject_package_id}`;
+    const response = await fetch(url);
+    const res = await response.json();
+    if (res.success) {
+      const resource = res.result.resources.find(
+        (res: any) => res.format === 'CSV' || res.mimetype === 'text/csv',
+      )?.url;
+      if (resource) {
+        const publishedDate = res.result.extras.find((m: any) => m.key === 'issued')?.value || '';
+        return { id: dataset.id, date: publishedDate, data: await fetchAndParseCsv(resource, dataset?.headers) };
+      }
+    }
+  }
+  catch (error) {
+    console.error(`Error fetching`, error);
+    throw error;
+  }
+}
 
 export async function fetchData(datasets: InputJSON) {
   try {
@@ -30,6 +51,12 @@ export async function fetchData(datasets: InputJSON) {
         const response = await fetch(url);
         const res = await response.json();
 
+        if (res.result.relationships_as_object.length > 0) {
+          const series = await Promise.all(
+            res.result.relationships_as_object.map((s: any) => fetchSeriesData(s, dataset)),
+          );
+          return series;
+        }
         if (res.success) {
           const resource = res.result.resources.find(
             (r: any) => r.id === dataset.resource_id,
@@ -60,31 +87,40 @@ export async function fetchData(datasets: InputJSON) {
 export async function fetchBathingMappings(data: any[], datasets: InputJSON) {
   try {
     const baseDatasetId = datasets.mappings[0].source_db_id;
-    const baseDataset = data.find((d: any) => d.id === baseDatasetId);
-    if (!baseDataset)
-      throw new Error('Base dataset not found');
-
-    const merged = baseDataset.data.map((baseRow: any) => {
-      const mergedRow = { ...baseRow };
-      datasets.mappings.forEach((m: any) => {
-        const targetDataset = data.find((d: any) => d.id === m.target_db_id);
-        if (!targetDataset)
-          return;
-
-        const match = targetDataset.data.find((row: any) =>
-          row[m.target_db_field] === baseRow[m.source_db_field],
-        );
-        if (match) {
-          Object.entries(match).forEach(([key, value]) => {
-            mergedRow[`${key}`] = value;
+    const seriesDataMappings = data[0].map((source: any) => {
+      if (baseDatasetId === source.id) {
+        const merged = source.data.map((baseRow: any) => {
+          const mergedRow = { ...baseRow };
+          datasets.mappings.forEach((m: any) => {
+            const targetDataset = data.find((d: any) => d.id === m.target_db_id);
+            if (!targetDataset)
+              return;
+            const match = targetDataset.data.find((row: any) =>
+              row[m.target_db_field] === baseRow[m.source_db_field],
+            );
+            if (match) {
+              Object.entries(match).forEach(([key, value]) => {
+                mergedRow[`${key}`] = value;
+              });
+            }
+            mergedRow.options = datasets.options;
           });
+          return mergedRow;
+        });
+        if (!merged.date) {
+          merged.date = [];
         }
-        mergedRow['labelOption'] = m.label_option;   
-      });
-      return mergedRow;
+        merged.date = source.date;
+        const geojson = csvToGeoJSONFromRows(merged, 'GEOGR_BREITE', 'GEOGR_LAENGE');
+        geojson.date = new Date(source.date).toISOString().split('T')[0];
+        return geojson;
+      }
+      else {
+        throw new Error('Base dataset not found');
+      }
     });
-    const geojson = csvToGeoJSONFromRows(merged, 'GEOGR_BREITE', 'GEOGR_LAENGE');
-    return geojson;
+    const sorted = seriesDataMappings.sort((a: any, b: any) => a.date.localeCompare(b.date));
+    return sorted;
   }
   catch (error) {
     console.error('Error fetching Bathing Mappings', error);
@@ -106,15 +142,21 @@ export async function fetchLakesMappings(data: any, datasets: InputJSON) {
         const targetDataset = data.find((d: any) => d.id === m.target_db_id);
         if (!targetDataset)
           return;
-
+        if (!mergedRow.lakeDepth) {
+          mergedRow.lakeDepth = [];
+        }
+        if (!mergedRow.properties.average_depth) {
+          mergedRow.properties.average_depth = 0;
+        }
         const baseValue = baseRow.properties.WK_NAME.toLowerCase();
         if (baseValue.includes(m.target_db_field.toLowerCase())) {
-          if (!mergedRow.lakeDepth) {
-            mergedRow.lakeDepth = [];
-          }
+          const depths = targetDataset.data.map((d: any) => {
+            return d.wasserstand;
+          });
           mergedRow.lakeDepth.push(targetDataset.data);
+          mergedRow.properties.average_depth = calculateMean(depths);
         }
-        mergedRow.properties.labelOption = m.label_option;
+        mergedRow.properties.options = datasets.options;
       });
       return mergedRow;
     });
@@ -129,37 +171,53 @@ export async function fetchLakesMappings(data: any, datasets: InputJSON) {
   }
 }
 
-async function fetchAndParseCsv<D>(csvUrl: string, headers?: string[]): Promise<D[]> {
-  const response = await fetchCsvFromUrl(csvUrl);
-  const decoder = new TextDecoder('iso-8859-1');
-  const csvText = decoder.decode(response);
-
-  const rows = csvText.trim().split('\n');
-  if (headers) {
-    return rows.map<D>((line) => {
-      const values = line.split('|').map(v => v.replace(/^"|"$/g, '').trim());
-      const entry: Record<string, any> = {};
-      headers.forEach((key, i) => {
-        entry[key] = values[i] ?? '';
-      });
-      return entry as D;
-    });
+function calculateMean(values: number[]): number {
+  const numbers = values.map(v => typeof v === 'string' ? Number.parseFloat(v) : v).filter(v => typeof v === 'number' && !Number.isNaN(v));
+  if (numbers.length === 0) {
+    return 0;
   }
-  else {
-    const headerLine = rows.shift();
-    if (!headerLine)
-      return [];
+  const sum = numbers.reduce((acc, val) => acc + val, 0);
+  // console.warn('sum', sum);
+  return sum / numbers.length;
+}
 
-    const detectedHeaders = headerLine.split(';').map(v => v.replace(/^"|"$/g, '').trim());
+async function fetchAndParseCsv<D>(csvUrl: string, headers?: string[]): Promise<D[]> {
+  try {
+    const response = await fetchCsvFromUrl(csvUrl);
+    const decoder = new TextDecoder('iso-8859-1');
+    const csvText = decoder.decode(response);
 
-    return rows.map<D>((line) => {
-      const values = line.split(';').map(v => v.replace(/^"|"$/g, '').trim());
-      const entry: Record<string, any> = {};
-      detectedHeaders.forEach((key, i) => {
-        entry[key] = values[i] ?? '';
+    const rows = csvText.trim().split('\n');
+    if (headers) {
+      return rows.map<D>((line) => {
+        const values = line.split('|').map(v => v.replace(/^"|"$/g, '').trim());
+        const entry: Record<string, any> = {};
+        headers.forEach((key, i) => {
+          entry[key] = values[i] ?? '';
+        });
+        return entry as D;
       });
-      return entry as D;
-    });
+    }
+    else {
+      const headerLine = rows.shift();
+      if (!headerLine)
+        return [];
+
+      const detectedHeaders = headerLine.split(';').map(v => v.replace(/^"|"$/g, '').trim());
+
+      return rows.map<D>((line) => {
+        const values = line.split(';').map(v => v.replace(/^"|"$/g, '').trim());
+        const entry: Record<string, any> = {};
+        detectedHeaders.forEach((key, i) => {
+          entry[key] = values[i] ?? '';
+        });
+        return entry as D;
+      });
+    }
+  }
+  catch (error) {
+    console.error('Error fetching CSV Files', error);
+    throw error;
   }
 }
 
@@ -232,5 +290,6 @@ function csvToGeoJSONFromRows(rows: Record<string, any>[], latKey = 'lat', lonKe
   return {
     type: 'FeatureCollection',
     features,
+    date: '',
   };
 }

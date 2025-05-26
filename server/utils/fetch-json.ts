@@ -1,6 +1,6 @@
 import { createError } from 'h3';
 
-export async function fetchCsvFromUrl(url: string): Promise<Uint8Array> {
+export async function fetchJsonFromUrl(url: string): Promise<Uint8Array> {
   if (!url) {
     throw createError({
       statusCode: 400,
@@ -17,9 +17,8 @@ export async function fetchCsvFromUrl(url: string): Promise<Uint8Array> {
   }
 
   const lowerUrl = url.toLowerCase();
-  if (lowerUrl.endsWith('.csv') || response.headers.get('content-type')?.includes('text/csv')) {
-    const buffer = await response.arrayBuffer();
-    return new Uint8Array(buffer);
+  if (lowerUrl.endsWith('json')) {
+    return await response.json();
   }
 
   throw createError({

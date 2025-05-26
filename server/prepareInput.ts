@@ -15,17 +15,16 @@ export interface Mappings {
   condition: string
   target_db_id: string
   target_db_field: string
+}
+export interface Options {
   label_option: string
+  legend_option: string
 }
 
 export interface InputJSON {
   datasets: Dataset[]
   mappings: Mappings[]
-}
-export interface StructuredDataset {
-  id: string
-  data: []
-  // mappings: Record<string, string>
+  options: Options
 }
 
 export async function getData(feature: string) {

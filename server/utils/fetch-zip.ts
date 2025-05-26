@@ -1,4 +1,4 @@
-import { createError, getQuery } from 'h3';
+import { createError } from 'h3';
 import shp from 'shpjs';
 
 export async function fetchZipFromUrl(url: string): Promise<Uint8Array> {

@@ -60,26 +60,26 @@
       </aside>
 
       <main class="flex-1 relative">
-        <MyLeafletMap :fetched-data="fetchedData" :selected-lake-date="selectedLakeDate" @marker-click="selectedItem = $event" />
+        <MyLeafletMap :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
+        <Slider
+          v-if="feature === 'bathing' && dateOptions"
+          :date-group="dateGroup"
+          :date-options="dateOptions"
+          :selected-index="selectedIndex"
+          :selected-date="selectedDate"
+          :is-small-screen="isSmallScreen"
+          @update:selected-index="selectedIndex = $event"
+        />
+        <PopupInfo
+          v-if="selectedItem && feature === 'bathing'"
+          :selected-item="selectedItem"
+          @close="selectedItem = null"
+        />
         <div
-          v-if="selectedItem"
-          class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-xl"
+          v-if="selectedItem && feature === 'lakeData'"
+          class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-2xl"
         >
-          <div class="flex justify-between items-center">
-            <h2 class="text-lg font-bold text-white">
-              {{ selectedItem.properties.BADEGEWAESSERNAME }}
-            </h2>
-            <button class="text-white text-xl" @click="selectedItem = null">
-              &times;
-            </button>
-          </div>
-          <ul class="mt-2 space-y-1 text-sm text-white">
-            <li><strong>{{ t('quality') }}:</strong> {{ selectedItem.properties?.EINSTUFUNG_ODER_VORABBEWERTUNG || 'N/A' }}</li>
-            <li><strong>{{ t('category') }}:</strong> {{ selectedItem.properties?.GEWAESSERKATEGORIE || 'N/A' }}</li>
-            <li><strong>{{ t('depth') }}:</strong> {{ selectedItem.properties?.SICHTTIEFE || 'N/A' }} m</li>
-            <li><strong>{{ t('seasonal') }}:</strong> {{ selectedItem.properties?.SAISONBEGINN }} - {{ selectedItem.properties?.SAISONENDE }} {{ selectedItem.properties?.GESCHLOSSEN || 'N/A' }} </li>
-            <li><strong>{{ t('infrastructure') }}:</strong> {{ selectedItem.properties?.INFRASTRUKTUR || 'N/A' }}</li>
-          </ul>
+          <LineChart v-if="selectedItem" :chart-data="chartData" :lake-name="lakeName" class="mt-4" @close="selectedItem = null" />
         </div>
       </main>
     </div>
@@ -88,96 +88,49 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import LineChart from '~/components/LineChart.vue';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
-// import { setLakeDepth } from '~/composables/useSliderDates';
+import PopupInfo from '~/components/PopupInfo.vue';
+import Slider from '~/components/Slider.vue';
+import { getDateOptions, getDatesGroups } from '~/composables/useSliderDates';
 
 const { t, locale, setLocale } = useI18n();
 const isSmallScreen = computed(() => {
   return window.innerWidth < 768;
 });
 const sidebarOpen = ref(false);
-const fetchedData = ref([]);
+const fetchedData = ref();
+const seriesData = ref([]);
 type FeatureType = 'bathing' | 'lakeData';
 const feature = ref<FeatureType | null>(null);
-/* const dateOptions = [
-  '2021-02-10',
-  '2021-03-01',
-  '2021-04-24',
-  '2021-05-01',
-  '2021-05-05',
-  '2021-05-07',
-  '2021-05-18',
-  '2021-06-16',
-  '2021-07-01',
-  '2021-07-03',
-  '2021-07-17',
-  '2021-08-06',
-  '2021-08-14',
-  '2022-04-01',
-  '2022-05-01',
-  '2022-06-01',
-  '2022-07-01',
-  '2022-08-01',
-  '2022-09-01',
-  '2022-12-01',
-  '2023-03-01',
-  '2023-06-01',
-  '2023-07-01',
-  '2023-08-01',
-  '2023-10-01',
-  '2023-11-01',
-  '2024-05-01',
-  '2024-06-01',
-  '2024-11-01',
-  '2025-04-01',
-]; */
+const selectedIndex = ref(0);
+const selectedItem = ref<any | null>(null);
+const selectedDate = ref();
+let dateOptions: any[];
+let dateGroup: any;
+let lakeName: string;
 
-/* const selectedIndex = ref(0);
-const selectedDate = ref(dateOptions[selectedIndex.value]); */
-const selectedItem = ref<MergedData | null>(null);
-
-// const yearColors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
-
-/* const groupedDates = computed(() => {
-  const yearGroups = new Map<string, string[]>();
-
-  dateOptions.forEach((date) => {
-    const year = date.slice(0, 4);
-    if (!yearGroups.has(year)) {
-      yearGroups.set(year, []);
-    }
-    yearGroups.get(year)!.push(date);
-  });
-
-  const total = dateOptions.length;
-  let offset = 0;
-
-  return Array.from(yearGroups.entries()).map(([year, dates], i) => {
-    const width = (dates.length / total) * 100;
-    const group = {
-      year,
-      width: width.toFixed(2),
-      offset: offset.toFixed(2),
-      color: yearColors[i % yearColors.length],
-    };
-    offset += width;
-    return group;
-  });
-}); */
+const chartData = computed(() => {
+  if (!selectedItem.value?.lakeDepth[0])
+    return [];
+  lakeName = selectedItem.value.properties.WK_NAME;
+  return selectedItem.value.lakeDepth[0].map((entry: any) => ({
+    date: entry.Zeit,
+    value: entry.wasserstand,
+  }));
+});
 
 function setFeature(f: FeatureType) {
   feature.value = f;
   sidebarOpen.value = false;
 }
 
-/* watch(selectedIndex, async (newIndex) => {
+watch(selectedIndex, async (newIndex) => {
   selectedItem.value = null;
   selectedDate.value = dateOptions[newIndex];
-  bathingWaterData.value = await fetchBathData(selectedDate.value);
+  fetchedData.value = seriesData.value[newIndex];
 });
-watch(selectedLakeDateIndex, async (newIndex) => {
-  selectedLakeDate.value = lakeDateOptions.value[newIndex]?.toISOString().split('T')[0] || '';
-}); */
+
 watch(feature, async () => {
   if (feature.value === 'bathing') {
     const { execute, data: response, status } = useLazyFetch(
@@ -186,9 +139,13 @@ watch(feature, async () => {
     );
     await execute();
     if (status.value !== 'pending') {
-      fetchedData.value = response.value;
-      console.warn(fetchedData.value);
-      // selectedIndex.value = dateOptions.length - 1;
+      fetchedData.value = [];
+      seriesData.value = [];
+      seriesData.value = response.value;
+      dateOptions = getDateOptions(seriesData.value);
+      dateGroup = getDatesGroups(seriesData.value);
+      selectedIndex.value = dateOptions.length - 1;
+      selectedDate.value = dateOptions[selectedIndex.value];
     }
   }
   else if (feature.value === 'lakeData') {
@@ -198,13 +155,11 @@ watch(feature, async () => {
     );
     await execute();
     if (status.value !== 'pending') {
-      console.warn(response.value);
+      fetchedData.value = [];
       fetchedData.value = response.value;
-      // setLakeDepth();
     }
   }
 });
-
 watch(locale, (newLocale) => {
   setLocale(newLocale);
 });

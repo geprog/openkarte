@@ -2,7 +2,7 @@
   "datasets": [
     {
       "host": "opendata.schleswig-holstein.de",
-      "id": "badegewasser-stammdaten-2025-04-01",
+      "id": "badegewasser-stammdaten",
       "resource_id": "d4534d43-e378-40c8-9466-5bf1bff76794",
       "title": "Badegewässer Stammdaten",
       "headers": [
@@ -98,9 +98,11 @@
     }
   ],
   "mappings": [
-    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-einstufung", "target_db_field": "BADEGEWAESSERID", "label_option": "EINSTUFUNG_ODER_VORABBEWERTUNG" },
-    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-messungen", "target_db_field": "BADEGEWAESSERID", "label_option": "EINSTUFUNG_ODER_VORABBEWERTUNG" },
-    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-saisondauer", "target_db_field": "BADEGEWAESSERID", "label_option": "EINSTUFUNG_ODER_VORABBEWERTUNG" },
-    { "source_db_id": "badegewasser-stammdaten-2025-04-01", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-infrastruktur-aktuell", "target_db_field": "BADEGEWAESSERID", "label_option": "EINSTUFUNG_ODER_VORABBEWERTUNG" }
-  ]
+    { "source_db_id": "badegewasser-stammdaten", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-einstufung", "target_db_field": "BADEGEWAESSERID" },
+    { "source_db_id": "badegewasser-stammdaten", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-messungen", "target_db_field": "BADEGEWAESSERID" },
+    { "source_db_id": "badegewasser-stammdaten", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-saisondauer", "target_db_field": "BADEGEWAESSERID" },
+    { "source_db_id": "badegewasser-stammdaten", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-infrastruktur-aktuell", "target_db_field": "BADEGEWAESSERID" }
+  ],
+  "options":
+    { "label_option": "EINSTUFUNG_ODER_VORABBEWERTUNG", "legend_option": "default" }
 }
