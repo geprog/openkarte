@@ -1,4 +1,4 @@
-## openkarte
+# OpenKarte
 
 **openkarte** is a web-based platform for exploring and visualizing open geospatial data. It aims to make public data intuitively accessible, visually insightful, and contextually rich — starting with georeferenced Open Data from Schleswig-Holstein.
 
