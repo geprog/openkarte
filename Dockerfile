@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:22.17.1-alpine
 WORKDIR /app
 COPY .output ./
 EXPOSE 3000
