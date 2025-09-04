@@ -17,6 +17,7 @@ const emit = defineEmits<{
   (e: 'marker-click', feature: Feature): void
 }>();
 let selectedMarker: L.Layer | null = null;
+const originalMarkerStyleMap = new Map<L.Layer, L.PathOptions>();
 let legendControl: L.Control | null = null;
 const geoJsonLayers: L.GeoJSON[] = [];
 
@@ -171,7 +172,7 @@ function renderMarkers(data: FeatureCollection | undefined) {
   clearLegend();
 
   const colorMap = generateLabels(data);
-  const originalMarkerStyleMap = new Map<L.Layer, L.PathOptions>();
+  originalMarkerStyleMap.clear();
 
   data.features.forEach((feature: GeoJSON.Feature<Geometry, GeoJsonProperties>) => {
     const f = feature as Feature;
@@ -234,6 +235,13 @@ function renderMarkers(data: FeatureCollection | undefined) {
   });
 }
 
+function resetSelectedMarker() {
+  if (selectedMarker instanceof L.Path && originalMarkerStyleMap.has(selectedMarker)) {
+    selectedMarker.setStyle(originalMarkerStyleMap.get(selectedMarker)!);
+    selectedMarker = null;
+  }
+}
+
 function clearMarkers() {
   if (leafletMap) {
     geoJsonLayers.forEach(layer => leafletMap!.removeLayer(layer));
@@ -247,6 +255,10 @@ function clearLegend() {
     legendControl = null;
   }
 }
+
+defineExpose({
+  resetSelectedMarker,
+});
 
 onMounted(() => {
   if (!map.value)

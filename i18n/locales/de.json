@@ -16,7 +16,7 @@
   "loadingText": "Laden der Daten, bitte warten...",
   "date": "Datum",
   "depthInMeter": "Tiefe (m)",
-  "DepthFor": "Tiefe für",
+  "depthFor": "Tiefe für",
   "depthOverTime": "Tiefe im Zeitverlauf",
   "noDepthsAvailableMessage": "Es sind keine Tiefenangaben verfügbar für"
 }

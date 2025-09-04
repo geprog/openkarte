@@ -70,7 +70,7 @@
           <LoadingSpinner />
         </div>
 
-        <MyLeafletMap :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
+        <MyLeafletMap ref="leafletMapRef" :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
         <Slider
           v-if="feature === 'bathing' && dateOptions"
           :date-group="dateGroup"
@@ -83,7 +83,9 @@
         <PopupInfo
           v-if="selectedItem && feature === 'bathing'"
           :selected-item="selectedItem"
+          :popup-config="popupConfig"
           @close="selectedItem = null"
+          @marker-reset="onMarkerReset"
         />
         <div
           v-if="selectedItem && feature === 'lakeData'"
@@ -105,8 +107,11 @@ import MyLeafletMap from '~/components/MyLeafletMap.vue';
 import PopupInfo from '~/components/PopupInfo.vue';
 import Slider from '~/components/Slider.vue';
 import { getDateOptions, getDatesGroups } from '~/composables/useSliderDates';
+import { createPopupConfig } from '~/composables/popupConfig';
 
+const leafletMapRef = ref<InstanceType<typeof MyLeafletMap> | null>(null);
 const { t, locale, setLocale } = useI18n();
+const popupConfig = createPopupConfig(t);
 const isSmallScreen = computed(() => {
   return window.innerWidth < 768;
 });
@@ -162,6 +167,10 @@ watch(selectedIndex, (newIndex) => {
   fetchedData.value = seriesData.value[newIndex];
 });
 
+function onMarkerReset() {
+  leafletMapRef.value?.resetSelectedMarker();
+}
+
 watch(feature, async () => {
   loading.value = true;
   if (feature.value) {
@@ -185,7 +194,6 @@ watch(feature, async () => {
       else if (feature.value === 'lakeData') {
         fetchedData.value = [];
         fetchedData.value = response.value;
-        // console.log('lakes', fetchedData.value);
       }
     }
   }

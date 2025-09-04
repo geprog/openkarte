@@ -61,7 +61,7 @@ const data = computed(() => ({
       data: values.value,
       backgroundColor: '#ffffff',
       borderWidth: -0.5,
-      pointRadius: 2,
+      pointRadius: 1.5,
     },
   ],
 }));
