@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import type { FeatureCollection } from 'geojson';
+import type { FeatureCollection, GeoJsonProperties } from 'geojson';
 import L, { Control } from 'leaflet';
 import { onMounted, ref, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
@@ -14,7 +14,7 @@ const props = defineProps<{
   fetchedData: FeatureCollection
 }>();
 const emit = defineEmits<{
-  (e: 'marker-click', data: any): void
+  (e: 'marker-click', feature: Feature): void
 }>();
 let selectedMarker: L.Layer | null = null;
 let legendControl: L.Control | null = null;
@@ -22,36 +22,49 @@ const geoJsonLayers: L.GeoJSON[] = [];
 
 const map = ref<HTMLDivElement | null>(null);
 
-// const { t } = useI18n();
-
 let leafletMap: L.Map | null = null;
 
-function findValueByKey(obj: any, key: string): any {
-  if (typeof obj !== 'object' || obj === null) {
+function findValueByKey(obj: unknown, key: string): string | number | undefined {
+  if (typeof obj !== 'object' || obj === null)
     return undefined;
+
+  const record = obj as Record<string, unknown>;
+
+  if (key in record) {
+    const value = record[key];
+    if (typeof value === 'string' || typeof value === 'number')
+      return value;
   }
-  if (key in obj) {
-    return obj[key];
-  }
-  for (const value of Object.values(obj)) {
+
+  for (const value of Object.values(record)) {
     const result = findValueByKey(value, key);
     if (result !== undefined)
       return result;
   }
+
   return undefined;
 }
 
-function generateLabels(data: typeof props.fetchedData) {
+function generateLabels(data: FeatureCollection): Map<string, string> {
   const colorMap = new Map<string, string>();
   const legend = new Control({ position: 'topleft' });
 
-  const legendDisplayOption = Array.from(
-    new Set(data.features.map((f: any) => f.properties.options.legend_option || 'default')),
+  const legendDisplayOption: string[] = Array.from(
+    new Set(
+      data.features.map(
+        f => f.properties?.options?.legend_option ?? 'default',
+      ),
+    ),
   );
 
-  const labelKey = data.features[0]?.properties?.options?.label_option;
-  const rawValues = data.features.map((f: any) => findValueByKey(f, labelKey));
-  const uniqueValues = Array.from(new Set(rawValues.map(v => v ?? 'default')));
+  const labelKey: string | undefined = data.features[0]?.properties?.options?.label_option;
+  const key = labelKey ?? 'default';
+
+  const rawValues: (string | number)[] = data.features.map(f => findValueByKey(f, key) ?? 'default');
+
+  const uniqueValues: string[] = Array.from(
+    new Set(rawValues.map(v => String(v))),
+  );
 
   if (legendDisplayOption[0] === 'default') {
     uniqueValues.forEach((value, i) => {
@@ -68,16 +81,16 @@ function generateLabels(data: typeof props.fetchedData) {
       uniqueValues.forEach((value) => {
         const color = colorMap.get(value);
         div.innerHTML += `
-      <div style="color:black; margin-bottom:4px;">
-        <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${value}
-      </div>`;
+          <div style="color:black; margin-bottom:4px;">
+            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${value}
+          </div>`;
       });
 
       return div;
     };
   }
   else if (legendDisplayOption[0] === 'colorVarient') {
-    const numericValues = uniqueValues
+    const numericValues: number[] = uniqueValues
       .map(v => +v)
       .filter(v => !Number.isNaN(v));
 
@@ -97,19 +110,18 @@ function generateLabels(data: typeof props.fetchedData) {
       bins.push([start, end]);
     }
 
+    function getBinLabel(value: number): string {
+      for (const [start, end] of bins) {
+        if (value >= start && value <= end)
+          return `${start.toFixed(1)} - ${end.toFixed(1)}`;
+      }
+      return 'default';
+    }
+
     bins.forEach(([start, end], i) => {
       const label = `${start.toFixed(1)} - ${end.toFixed(1)}`;
       colorMap.set(label, generateColor(i, bins.length));
     });
-
-    function getBinLabel(value: number): string {
-      for (const [start, end] of bins) {
-        if (value >= start && value <= end) {
-          return `${start.toFixed(1)} - ${end.toFixed(1)}`;
-        }
-      }
-      return 'default';
-    }
 
     legend.onAdd = function () {
       const div = L.DomUtil.create('div', 'info legend');
@@ -122,24 +134,27 @@ function generateLabels(data: typeof props.fetchedData) {
         const label = `${start.toFixed(1)} - ${end.toFixed(1)}`;
         const color = colorMap.get(label);
         div.innerHTML += `
-      <div style="color:black; margin-bottom:4px;">
-        <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
-      </div>`;
+          <div style="color:black; margin-bottom:4px;">
+            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
+          </div>`;
       });
 
       return div;
     };
 
-    data.features.forEach((f: any) => {
-      const val = +findValueByKey(f, labelKey);
-      const binLabel = getBinLabel(val);
-      f.__binLabel = binLabel;
+    data.features.forEach((f) => {
+      const feature = f as Feature;
+      const key = labelKey ?? 'default';
+      const val = +(findValueByKey(feature, key) ?? 0);
+      feature.__binLabel = getBinLabel(val);
     });
   }
+
   if (leafletMap) {
     legend.addTo(leafletMap);
     legendControl = legend;
   }
+
   return colorMap;
 }
 
@@ -148,7 +163,7 @@ function generateColor(index: number, total: number): string {
   return `hsl(${hue}, 70%, 50%)`;
 }
 
-function renderMarkers(data: typeof props.fetchedData) {
+function renderMarkers(data: FeatureCollection | undefined) {
   if (!data)
     return;
 
@@ -156,20 +171,21 @@ function renderMarkers(data: typeof props.fetchedData) {
   clearLegend();
 
   const colorMap = generateLabels(data);
-  const originalMarkerStyleMap = new Map<L.Layer, any>();
+  const originalMarkerStyleMap = new Map<L.Layer, L.PathOptions>();
 
-  data.features.forEach((feature: any) => {
-    const legendOption = feature.properties.options.legend_option;
-    const labelOption = feature.properties.options.label_option;
-    let key = feature.properties[labelOption];
+  data.features.forEach((feature: GeoJSON.Feature<Geometry, GeoJsonProperties>) => {
+    const f = feature as Feature;
+    const legendOption = f.properties.options?.legend_option;
+    const labelOption = f.properties.options?.label_option;
+    let key = labelOption ? f.properties[labelOption] : undefined;
 
     if (legendOption === 'colorVarient') {
-      key = feature.__binLabel;
+      key = f.__binLabel;
     }
 
     const color = colorMap.get(key) ?? '#999';
 
-    const geoJsonLayer = L.geoJSON(feature, {
+    const geoJsonLayer = L.geoJSON(feature as GeoJSON.Feature<Geometry, Feature['properties']>, {
       style: () => ({
         color,
         weight: 2,
@@ -178,7 +194,7 @@ function renderMarkers(data: typeof props.fetchedData) {
         fillOpacity: 0.7,
       }),
       pointToLayer: (feature, latlng) => {
-        const style = {
+        const style: L.CircleMarkerOptions = {
           radius: 6,
           color,
           fillColor: color,
@@ -193,8 +209,9 @@ function renderMarkers(data: typeof props.fetchedData) {
       onEachFeature: (feature, layer) => {
         layer.on('click', () => {
           if (selectedMarker instanceof L.CircleMarker && originalMarkerStyleMap.has(selectedMarker)) {
-            selectedMarker.setStyle(originalMarkerStyleMap.get(selectedMarker));
+            selectedMarker.setStyle(originalMarkerStyleMap.get(selectedMarker)!);
           }
+
           if (layer instanceof L.CircleMarker) {
             layer.setStyle({
               radius: 10,
@@ -207,7 +224,7 @@ function renderMarkers(data: typeof props.fetchedData) {
 
           selectedMarker = layer;
           // eslint-disable-next-line vue/custom-event-name-casing
-          emit('marker-click', feature);
+          emit('marker-click', feature as Feature);
         });
       },
     });

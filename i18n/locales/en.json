@@ -14,9 +14,9 @@
   "waterLevel": "Water level",
   "notAvailable": "Not Available",
   "loadingText": "Loading data, please wait...",
-  "chartX": "Date",
-  "chartY": "Depth (m)",
-  "chartTitle": "Depth for",
-  "chartLegend": "Depth Over Time",
-  "chartEmpty": "No recorded depths are available for"
+  "date": "Date",
+  "depthInMeter": "Depth (m)",
+  "depthFor": "Depth for",
+  "depthOverTime": "Depth Over Time",
+  "noDepthsAvailableMessage": "No recorded depths are available for"
 }

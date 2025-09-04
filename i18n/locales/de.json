@@ -14,9 +14,9 @@
   "waterLevel": "Wasserpegel",
   "notAvailable": "Nicht verfügbar",
   "loadingText": "Laden der Daten, bitte warten...",
-  "chartX": "Datum",
-  "chartY": "Tiefe (m)",
-  "chartTitle": "Tiefe für",
-  "chartLegend": "Tiefe im Zeitverlauf",
-  "chartEmpty": "Es sind keine Tiefenangaben verfügbar für"
+  "date": "Datum",
+  "depthInMeter": "Tiefe (m)",
+  "DepthFor": "Tiefe für",
+  "depthOverTime": "Tiefe im Zeitverlauf",
+  "noDepthsAvailableMessage": "Es sind keine Tiefenangaben verfügbar für"
 }

@@ -46,37 +46,42 @@ export async function fetchData(datasets: InputJSON) {
             statusMessage: 'Access to this URL is not allowed',
           });
         }
-
         const url = `https://${dataset.host}/api/action/package_show?id=${dataset.id}`;
-        const response = await fetch(url);
-        const res = await response.json();
+        try {
+          const response = await fetch(url);
+          const res = await response.json();
 
-        if (res.result.relationships_as_object.length > 0) {
-          const series = await Promise.all(
-            res.result.relationships_as_object.map((s: any) => fetchSeriesData(s, dataset)),
-          );
-          return series;
-        }
-        if (res.success) {
-          const resource = res.result.resources.find(
-            (r: any) => r.id === dataset.resource_id,
-          );
+          if (res.result.relationships_as_object.length > 0) {
+            const series = await Promise.all(
+              res.result.relationships_as_object.map((s: any) => fetchSeriesData(s, dataset)),
+            );
+            return series;
+          }
+          if (res.success) {
+            const resource = res.result.resources.find(
+              (r: any) => r.id === dataset.resource_id,
+            );
 
-          if (resource) {
-            if (resource.url) {
-              resource.url = resource.url.replace(/^http:/, 'https:');
-            }
-            if (resource.format === 'CSV') {
-              return { id: dataset.id, data: await fetchAndParseCsv(resource.url, dataset?.headers) };
-            }
-            else if (['JSON', 'SHP'].includes(resource.format)) {
-              return { id: dataset.id, data: await fetchAndParseJson(resource.url) };
+            if (resource) {
+              if (resource.url) {
+                resource.url = resource.url.replace(/^http:/, 'https:');
+              }
+              if (resource.format === 'CSV') {
+                return { id: dataset.id, data: await fetchAndParseCsv(resource.url, dataset?.headers) };
+              }
+              else if (['JSON', 'SHP'].includes(resource.format)) {
+                return { id: dataset.id, data: await fetchAndParseJson(resource.url) };
+              }
             }
           }
         }
+        catch (err) {
+          console.error('failed url', err, url);
+          return null;
+        }
       }),
     );
-    return data;
+    return data.filter(Boolean);
   }
   catch (error) {
     console.error(`Error fetching`, error);

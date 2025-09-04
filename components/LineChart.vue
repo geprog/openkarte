@@ -12,7 +12,7 @@
       <Line :data="data" :options="options" />
     </div>
     <div v-else class="text-white text-center py-4">
-      {{ t('chartEmpty') }} <span class="font-semibold">{{ props.lakeName || 'this location' }}</span>.
+      {{ t('noDepthsAvailableMessage') }} <span class="font-semibold">{{ props.lakeName || 'this location' }}</span>.
     </div>
   </div>
 </template>
@@ -33,7 +33,7 @@ import { computed } from 'vue';
 import { Line } from 'vue-chartjs';
 
 const props = defineProps<{
-  chartData: { date: string, value: number }[]
+  chartData: { date: string, value: string }[]
   lakeName?: string
 }>();
 const emit = defineEmits<{
@@ -43,7 +43,7 @@ const { t } = useI18n();
 ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale);
 
 const chartReady = computed(() => Array.isArray(props.chartData) && props.chartData.length > 0);
-const chartTitle = computed(() => props.lakeName ? `${t('chartTitle')} ${props.lakeName}` : `No recorded depth for ${props.lakeName}`);
+const chartTitle = computed(() => props.lakeName ? `${t('depthFor')} ${props.lakeName}` : `No recorded depth for ${props.lakeName}`);
 
 const labels = computed(() =>
   props.chartData.map(d => d.date.split(' ')[0]),
@@ -57,7 +57,7 @@ const data = computed(() => ({
   labels: labels.value,
   datasets: [
     {
-      label: t('chartLegend'),
+      label: t('depthOverTime'),
       data: values.value,
       backgroundColor: '#ffffff',
       borderWidth: -0.5,
@@ -83,7 +83,7 @@ const options = computed(() => ({
     y: {
       title: {
         display: true,
-        text: t('chartY'),
+        text: t('depthInMeter'),
         color: '#ffffff',
       },
       ticks: {
@@ -93,7 +93,7 @@ const options = computed(() => ({
     x: {
       title: {
         display: true,
-        text: t('chartX'),
+        text: t('date'),
         color: '#ffffff',
       },
       ticks: {

@@ -112,7 +112,7 @@ const isSmallScreen = computed(() => {
 });
 const sidebarOpen = ref(false);
 const fetchedData = ref();
-const seriesData = ref([]);
+const seriesData = ref<FeatureCollection[]>([]);
 type FeatureType = 'bathing' | 'lakeData';
 const colorMode = useColorMode();
 
@@ -130,20 +130,23 @@ const selectedLocaleIcon = computed(() => localeItems.value.find(item => item.va
 
 const feature = ref<FeatureType | null>(null);
 const selectedIndex = ref(0);
-const selectedItem = ref<any | null>(null);
+const selectedItem = ref<Feature | null>(null);
 const selectedDate = ref();
-let dateOptions: any[];
-let dateGroup: any;
+let dateOptions: DateOptions[];
+let dateGroup: DateGroup[];
 let lakeName: string;
 const loading = ref(false);
 
 const chartData = computed(() => {
-  if (!selectedItem.value?.lakeDepth[0]) {
-    lakeName = selectedItem.value.properties.WK_NAME;
+  const lake = selectedItem.value;
+  if (!lake || !lake.lakeDepth?.[0]) {
+    lakeName = lake?.properties.WK_NAME;
     return [];
   }
-  lakeName = selectedItem.value.properties.WK_NAME;
-  return selectedItem.value.lakeDepth[0].map((entry: any) => ({
+
+  lakeName = lake.properties.WK_NAME;
+  const series = lake.lakeDepth[0];
+  return series.map(entry => ({
     date: entry.Zeit,
     value: entry.wasserstand,
   }));
@@ -153,7 +156,7 @@ function setFeature(f: FeatureType) {
   feature.value = f;
 }
 
-watch(selectedIndex, async (newIndex) => {
+watch(selectedIndex, (newIndex) => {
   selectedItem.value = null;
   selectedDate.value = dateOptions[newIndex];
   fetchedData.value = seriesData.value[newIndex];
@@ -182,6 +185,7 @@ watch(feature, async () => {
       else if (feature.value === 'lakeData') {
         fetchedData.value = [];
         fetchedData.value = response.value;
+        // console.log('lakes', fetchedData.value);
       }
     }
   }
