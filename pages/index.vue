@@ -106,12 +106,12 @@ import LineChart from '~/components/LineChart.vue';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
 import PopupInfo from '~/components/PopupInfo.vue';
 import Slider from '~/components/Slider.vue';
-import { getDateOptions, getDatesGroups } from '~/composables/useSliderDates';
 import { createPopupConfig } from '~/composables/popupConfig';
+import { getDateOptions, getDatesGroups } from '~/composables/useSliderDates';
 
 const leafletMapRef = ref<InstanceType<typeof MyLeafletMap> | null>(null);
 const { t, locale, setLocale } = useI18n();
-const popupConfig = createPopupConfig(t);
+const popupConfig = createPopupConfig();
 const isSmallScreen = computed(() => {
   return window.innerWidth < 768;
 });
