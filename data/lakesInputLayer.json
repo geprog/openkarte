@@ -101,5 +101,5 @@
     { "source_db_id": "see-wasserkorper", "source_db_field": "WK_NAME", "condition": "=", "target_db_id": "wasserstand-pegel-meldorf-kronenloch", "target_db_field": "Meldorf-Kronenloch" }
   ],
   "options":
-    { "label_option": "average_depth", "legend_option": "colorVarient" }
+    { "label_option": "average", "legend_option": "colorVarient", "type": "geo", "value_group": "wasserstand" }
 }

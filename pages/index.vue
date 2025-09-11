@@ -143,15 +143,15 @@ let lakeName: string;
 const loading = ref(false);
 
 const chartData = computed(() => {
-  const lake = selectedItem.value;
-  if (!lake || !lake.lakeDepth?.[0]) {
-    lakeName = lake?.properties.WK_NAME;
+  const data = selectedItem.value;
+  if (!data || !data.properties.match?.[0]) {
+    lakeName = data?.properties.WK_NAME;
     return [];
   }
 
-  lakeName = lake.properties.WK_NAME;
-  const series = lake.lakeDepth[0];
-  return series.map(entry => ({
+  lakeName = data.properties.WK_NAME;
+  const series = data.properties.match[0];
+  return series.map((entry: any) => ({ // have to change this any type
     date: entry.Zeit,
     value: entry.wasserstand,
   }));
@@ -181,11 +181,13 @@ watch(feature, async () => {
 
     await execute();
 
-    if (status.value !== 'pending') {
+    if (status.value !== 'pending' && response.value) {
+      const resp = response.value as NormalizedResponse;
+
       if (feature.value === 'bathing') {
         fetchedData.value = [];
         seriesData.value = [];
-        seriesData.value = response.value;
+        seriesData.value = resp.datasets;
         dateOptions = getDateOptions(seriesData.value);
         dateGroup = getDatesGroups(seriesData.value);
         selectedIndex.value = dateOptions.length - 1;
@@ -193,7 +195,7 @@ watch(feature, async () => {
       }
       else if (feature.value === 'lakeData') {
         fetchedData.value = [];
-        fetchedData.value = response.value;
+        fetchedData.value = resp.datasets[0];
       }
     }
   }

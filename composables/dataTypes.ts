@@ -4,18 +4,16 @@ export interface FeatureCollection {
   type: string
 }
 
+export interface NormalizedResponse {
+  type: string
+  datasets: FeatureCollection[]
+}
+
 export interface Feature {
   geometry: Geometry
   properties: Record<string, any>
   type: string
-  lakeDepth?: LakeDepthEntry[][]
   __binLabel?: string
-}
-
-export interface LakeDepthEntry {
-  Zeit: string
-  wasserstand: string
-  wasserstand_status: string
 }
 
 export type Geometry =

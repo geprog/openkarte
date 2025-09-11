@@ -1,12 +1,13 @@
 import bathingJson from '~/data/bathingWaterInputLayer.json';
 import lakesJson from '~/data/lakesInputLayer.json';
-import { fetchBathingMappings, fetchData, fetchLakesMappings } from '~/server/fetchData';
+import { fetchData, fetchMappings } from '~/server/fetchData';
 
 export interface Dataset {
   host: string
   id: string
   resource_id: string
   title: string
+  headers?: string[]
 }
 
 export interface Mappings {
@@ -19,6 +20,8 @@ export interface Mappings {
 export interface Options {
   label_option: string
   legend_option: string
+  type: string
+  value_group: string
 }
 
 export interface InputJSON {
@@ -30,11 +33,11 @@ export interface InputJSON {
 export async function getData(feature: string) {
   if (feature === 'bathing') {
     const fetchedData = await fetchData(bathingJson as InputJSON);
-    return await fetchBathingMappings(fetchedData, bathingJson as InputJSON);
+    return await fetchMappings(fetchedData, bathingJson as InputJSON);
   }
   else if (feature === 'lakeData') {
     const fetchedData = await fetchData(lakesJson as InputJSON);
-    return await fetchLakesMappings(fetchedData, lakesJson as InputJSON);
+    return await fetchMappings(fetchedData, lakesJson as InputJSON);
   }
   else {
     return 'Unavailable Feature Requested!';

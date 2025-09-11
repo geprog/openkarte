@@ -104,5 +104,5 @@
     { "source_db_id": "badegewasser-stammdaten", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-infrastruktur-aktuell", "target_db_field": "BADEGEWAESSERID" }
   ],
   "options":
-    { "label_option": "EINSTUFUNG_ODER_VORABBEWERTUNG", "legend_option": "default" }
+    { "label_option": "EINSTUFUNG_ODER_VORABBEWERTUNG", "legend_option": "default", "type": "series", "value_group": "" }
 }

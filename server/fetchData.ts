@@ -51,7 +51,7 @@ export async function fetchData(datasets: InputJSON) {
           const response = await fetch(url);
           const res = await response.json();
 
-          if (res.result.relationships_as_object.length > 0) {
+          if (res.result?.relationships_as_object.length > 0) {
             const series = await Promise.all(
               res.result.relationships_as_object.map((s: any) => fetchSeriesData(s, dataset)),
             );
@@ -89,29 +89,70 @@ export async function fetchData(datasets: InputJSON) {
   }
 }
 
-export async function fetchBathingMappings(data: any[], datasets: InputJSON) {
+export async function fetchMappings(data: any[], datasets: InputJSON) {
   try {
     const baseDatasetId = datasets.mappings[0].source_db_id;
-    const seriesDataMappings = data[0].map((source: any) => {
-      if (baseDatasetId === source.id) {
-        const merged = source.data.map((baseRow: any) => {
-          const mergedRow = { ...baseRow };
-          datasets.mappings.forEach((m: any) => {
-            const targetDataset = data.find((d: any) => d.id === m.target_db_id);
-            if (!targetDataset)
-              return;
-            const match = targetDataset.data.find((row: any) =>
-              row[m.target_db_field] === baseRow[m.source_db_field],
-            );
+    let mappingDatasets: any[] = [];
+
+    if (Array.isArray(data[0])) {
+      // case: series → multiple snapshots
+      mappingDatasets = data[0].filter((d: any) => d.id === baseDatasetId);
+    }
+    else {
+      const baseDataset = data.find((d: any) => d.id === baseDatasetId);
+      if (!baseDataset)
+        throw new Error('Base dataset not found');
+      mappingDatasets = [baseDataset];
+    }
+    // return mappingDatasets;
+    const results = mappingDatasets.map((source: any) => {
+      const baseRows = source.data?.features ?? source.data ?? [];
+
+      const merged = baseRows.map((baseRow: any) => {
+        const mergedRow: any = { ...baseRow };
+
+        datasets.mappings.forEach((m: any) => {
+          const targetDataset = data.find((d: any) => d.id === m.target_db_id);
+          if (!targetDataset)
+            return;
+
+          const targetRows = targetDataset.data?.features ?? targetDataset.data ?? [];
+
+          if (datasets.options.type === 'geo') {
+            if (!mergedRow?.properties.match) {
+              mergedRow.properties.match = [];
+            }
+            if (!mergedRow?.properties.average) {
+              mergedRow.properties.average = 0;
+            }
+            const baseValue = getValue(baseRow.properties, m.source_db_field)?.toString().toLowerCase();
+            if (baseValue && baseValue.includes(m.target_db_field.toLowerCase())) {
+              const values = targetDataset.data.map((d: any) => {
+                return d[datasets.options.value_group];
+              });
+              mergedRow.properties.match.push(targetDataset.data);
+              mergedRow.properties.average = calculateMean(values);
+            }
+            mergedRow.properties.options = datasets.options;
+          }
+          else {
+            const match = targetRows.find((row: any) => {
+              const sourceValue = getValue(baseRow, m.source_db_field);
+              const targetValue = getValue(row, m.target_db_field);
+              return sourceValue === targetValue;
+            });
             if (match) {
               Object.entries(match).forEach(([key, value]) => {
-                mergedRow[`${key}`] = value;
+                mergedRow[key] = value;
               });
             }
             mergedRow.options = datasets.options;
-          });
-          return mergedRow;
+          }
         });
+
+        return mergedRow;
+      });
+      if (datasets.options.type === 'series') {
         if (!merged.date) {
           merged.date = [];
         }
@@ -120,60 +161,32 @@ export async function fetchBathingMappings(data: any[], datasets: InputJSON) {
         geojson.date = new Date(source.date).toISOString().split('T')[0];
         return geojson;
       }
-      else {
-        throw new Error('Base dataset not found');
-      }
+
+      // Always return as FeatureCollection
+      const featureCollection = {
+        type: 'FeatureCollection',
+        features: merged,
+        ...(source.date && {
+          date: new Date(source.date).toISOString().split('T')[0],
+        }),
+      };
+
+      return featureCollection;
     });
-    const sorted = seriesDataMappings.sort((a: any, b: any) => a.date.localeCompare(b.date));
-    return sorted;
+    // Step 3: Normalize response wrapper
+    return {
+      type: 'FeatureCollectionGroup',
+      datasets: results.sort((a: any, b: any) => (a.date || '').localeCompare(b.date || '')),
+    };
   }
   catch (error) {
-    console.error('Error fetching Bathing Mappings', error);
+    console.error('Error fetching Mappings', error);
     throw error;
   }
 }
 
-export async function fetchLakesMappings(data: any, datasets: InputJSON) {
-  try {
-    const baseDatasetId = datasets.mappings[0].source_db_id;
-    const baseDataset = data.find((d: any) => d.id === baseDatasetId);
-
-    if (!baseDataset)
-      throw new Error('Base dataset not found');
-    const features = baseDataset.data.features.map((baseRow: any) => {
-      const mergedRow: any = { ...baseRow };
-
-      datasets.mappings.forEach((m: any) => {
-        const targetDataset = data.find((d: any) => d.id === m.target_db_id);
-        if (!targetDataset)
-          return;
-        if (!mergedRow.lakeDepth) {
-          mergedRow.lakeDepth = [];
-        }
-        if (!mergedRow.properties.average_depth) {
-          mergedRow.properties.average_depth = 0;
-        }
-        const baseValue = baseRow.properties.WK_NAME.toLowerCase();
-        if (baseValue.includes(m.target_db_field.toLowerCase())) {
-          const depths = targetDataset.data.map((d: any) => {
-            return d.wasserstand;
-          });
-          mergedRow.lakeDepth.push(targetDataset.data);
-          mergedRow.properties.average_depth = calculateMean(depths);
-        }
-        mergedRow.properties.options = datasets.options;
-      });
-      return mergedRow;
-    });
-    return {
-      type: 'FeatureCollection',
-      features,
-    };
-  }
-  catch (error) {
-    console.error('Error fetching Lakes Mappings', error);
-    throw error;
-  }
+function getValue(obj: any, field: string) {
+  return field.split('.').reduce((acc, key) => acc?.[key], obj);
 }
 
 function calculateMean(values: number[]): number {
