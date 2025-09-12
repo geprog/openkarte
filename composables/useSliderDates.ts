@@ -1,4 +1,10 @@
-const yearColors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
+const yearColors = [
+  '#3B82F6', // blue
+  '#10B981', // green
+  '#8B5CF6', // purple
+  '#F59E0B', // amber (still warm, but not red)
+  '#0D9488', // teal (replaces red)
+];
 
 export function getDatesGroups(fetchedData: FeatureCollection[]) {
   const groupedDates = computed(() => {

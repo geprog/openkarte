@@ -160,8 +160,14 @@ function generateLabels(data: FeatureCollection): Map<string, string> {
 }
 
 function generateColor(index: number, total: number): string {
-  const hue = (index * (360 / total)) % 360;
-  return `hsl(${hue}, 70%, 50%)`;
+  const allowedRanges = [
+    { start: 30, end: 330 },
+  ];
+
+  const range = allowedRanges[0];
+  const hue = range.start + (index * (range.end - range.start)) / total;
+
+  return `hsl(${hue}, 70%, 40%)`;
 }
 
 function renderMarkers(data: FeatureCollection | undefined) {
