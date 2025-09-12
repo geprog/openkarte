@@ -81,17 +81,17 @@
           @update:selected-index="selectedIndex = $event"
         />
         <PopupInfo
-          v-if="selectedItem && feature === 'bathing'"
+          v-if="selectedItem?.properties.options.display_option === 'popup'"
           :selected-item="selectedItem"
-          :popup-config="popupConfig"
+          :popup-config="createPopupConfig(selectedItem)"
           @close="selectedItem = null"
           @marker-reset="onMarkerReset"
         />
         <div
-          v-if="selectedItem && feature === 'lakeData'"
+          v-if="selectedItem?.properties.options.display_option === 'line chart'"
           class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-2xl"
         >
-          <LineChart v-if="selectedItem" :chart-data="chartData" :lake-name="lakeName" class="mt-4" @close="selectedItem = null" />
+          <LineChart v-if="selectedItem" :chart-data="chartData" :name="name" class="mt-4" @close="selectedItem = null" />
         </div>
       </main>
     </div>
@@ -111,7 +111,6 @@ import { getDateOptions, getDatesGroups } from '~/composables/useSliderDates';
 
 const leafletMapRef = ref<InstanceType<typeof MyLeafletMap> | null>(null);
 const { t, locale, setLocale } = useI18n();
-const popupConfig = createPopupConfig();
 const isSmallScreen = computed(() => {
   return window.innerWidth < 768;
 });
@@ -139,21 +138,21 @@ const selectedItem = ref<Feature | null>(null);
 const selectedDate = ref();
 let dateOptions: DateOptions[];
 let dateGroup: DateGroup[];
-let lakeName: string;
+let name: string;
 const loading = ref(false);
 
 const chartData = computed(() => {
   const data = selectedItem.value;
   if (!data || !data.properties.match?.[0]) {
-    lakeName = data?.properties.WK_NAME;
+    name = data?.properties[data.properties.options.display_option_name];
     return [];
   }
 
-  lakeName = data.properties.WK_NAME;
+  name = data.properties[data.properties.options.display_option_name];
   const series = data.properties.match[0];
-  return series.map((entry: any) => ({ // have to change this any type
-    date: entry.Zeit,
-    value: entry.wasserstand,
+  return series.map((entry: DataEntry) => ({
+    date: entry[data.properties.options.x_axis],
+    value: entry[data.properties.options.y_axis],
   }));
 });
 

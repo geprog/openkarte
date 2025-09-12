@@ -104,5 +104,20 @@
     { "source_db_id": "badegewasser-stammdaten", "source_db_field": "BADEGEWAESSERID", "condition": "=", "target_db_id": "badegewasser-infrastruktur-aktuell", "target_db_field": "BADEGEWAESSERID" }
   ],
   "options":
-    { "label_option": "EINSTUFUNG_ODER_VORABBEWERTUNG", "legend_option": "default", "type": "series", "value_group": "" }
+    {
+      "label_option": "EINSTUFUNG_ODER_VORABBEWERTUNG",
+      "legend_option": "default",
+      "type": "series",
+      "value_group": "",
+      "display_option": "popup",
+      "display_option_name": "BADEGEWAESSERNAME",
+      "popup_display_text": {
+        "text_1": "EINSTUFUNG_ODER_VORABBEWERTUNG",
+        "text_2": "GEWAESSERKATEGORIE",
+        "text_3": "SICHTTIEFE",
+        "text_4": "SAISONBEGINN",
+        "text_5": "INFRASTRUKTUR"
+      },
+      "slider": "yes"
+    }
 }

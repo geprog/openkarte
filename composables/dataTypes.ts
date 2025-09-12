@@ -48,3 +48,7 @@ export interface DateGroup {
 export interface DateOptions {
   [key: number]: string
 }
+
+export interface DataEntry {
+  [key: string]: string | number
+}

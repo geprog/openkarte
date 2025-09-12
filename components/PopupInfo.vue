@@ -4,7 +4,7 @@
   >
     <div class="flex justify-between items-center">
       <h2 class="text-lg font-bold text-white">
-        {{ selectedItem.properties[popupConfig.titleProp] }}
+        {{ props.selectedItem.properties[props.popupConfig.titleProp] }}
       </h2>
       <button
         class="absolute top-2 right-2 text-white text-xl hover:text-red-400"
@@ -14,9 +14,9 @@
       </button>
     </div>
     <ul class="mt-2 space-y-1 text-sm text-white">
-      <li v-for="(detail, index) in popupConfig.details" :key="index">
+      <li v-for="(detail, index) in props.popupConfig.details" :key="index">
         <strong>{{ t(detail.label) }}:</strong>
-        {{ detail.formatter ? detail.formatter(selectedItem.properties[detail.prop], selectedItem) : (selectedItem.properties?.[detail.prop] || 'N/A') }}
+        {{ detail.formatter ? detail.formatter(props.selectedItem.properties[detail.prop], props.selectedItem) : (props.selectedItem.properties?.[detail.prop] || 'N/A') }}
       </li>
     </ul>
   </div>
@@ -25,8 +25,8 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 
-defineProps<{
-  selectedItem: any
+const props = defineProps<{
+  selectedItem: Feature
   popupConfig: PopupConfig
 }>();
 

@@ -12,7 +12,7 @@
       <Line :data="data" :options="options" />
     </div>
     <div v-else class="text-white text-center py-4">
-      {{ t('noDepthsAvailableMessage') }} <span class="font-semibold">{{ props.lakeName || 'this location' }}</span>.
+      {{ t('noDepthsAvailableMessage') }} <span class="font-semibold">{{ props.name || 'this location' }}</span>.
     </div>
   </div>
 </template>
@@ -34,7 +34,7 @@ import { Line } from 'vue-chartjs';
 
 const props = defineProps<{
   chartData: { date: string, value: string }[]
-  lakeName?: string
+  name?: string
 }>();
 const emit = defineEmits<{
   (e: 'close'): void
@@ -43,7 +43,7 @@ const { t } = useI18n();
 ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale);
 
 const chartReady = computed(() => Array.isArray(props.chartData) && props.chartData.length > 0);
-const chartTitle = computed(() => props.lakeName ? `${t('depthFor')} ${props.lakeName}` : `No recorded depth for ${props.lakeName}`);
+const chartTitle = computed(() => props.name ? `${t('depthFor')} ${props.name}` : `No recorded depth for ${props.name}`);
 
 const labels = computed(() =>
   props.chartData.map(d => d.date.split(' ')[0]),

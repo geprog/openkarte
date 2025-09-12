@@ -7,15 +7,15 @@ export interface PopupConfig {
   }[]
 };
 
-export function createPopupConfig(): PopupConfig {
+export function createPopupConfig(selectedItem: Feature): PopupConfig {
   return {
-    titleProp: 'BADEGEWAESSERNAME',
+    titleProp: selectedItem.properties.options.display_option_name,
     details: [
-      { label: 'quality', prop: 'EINSTUFUNG_ODER_VORABBEWERTUNG' },
-      { label: 'category', prop: 'GEWAESSERKATEGORIE' },
-      { label: 'depth', prop: 'SICHTTIEFE', formatter: (val: unknown) => `${val ?? 'N/A'} m` },
-      { label: 'seasonal', prop: 'SAISONBEGINN', formatter: (val: unknown, item: any) => `${val ?? ''} - ${item.properties?.SAISONENDE ?? 'N/A'} (${item.properties?.GESCHLOSSEN ?? ''})` },
-      { label: 'infrastructure', prop: 'INFRASTRUKTUR' },
+      { label: 'quality', prop: selectedItem.properties.options.popup_display_text.text_1 },
+      { label: 'category', prop: selectedItem.properties.options.popup_display_text.text_2 },
+      { label: 'depth', prop: selectedItem.properties.options.popup_display_text.text_3, formatter: (val: unknown) => `${val ?? 'N/A'} m` },
+      { label: 'seasonal', prop: selectedItem.properties.options.popup_display_text.text_4, formatter: (val: unknown, item: any) => `${val ?? ''} - ${item.properties?.SAISONENDE ?? 'N/A'} (${item.properties?.GESCHLOSSEN ?? ''})` },
+      { label: 'infrastructure', prop: selectedItem.properties.options.popup_display_text.text_5 },
     ],
   };
 }
