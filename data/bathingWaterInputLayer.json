@@ -110,14 +110,14 @@
       "type": "series",
       "value_group": "",
       "display_option": "popup",
-      "display_option_name": "BADEGEWAESSERNAME",
-      "popup_display_text": {
-        "text_1": "EINSTUFUNG_ODER_VORABBEWERTUNG",
-        "text_2": "GEWAESSERKATEGORIE",
-        "text_3": "SICHTTIEFE",
-        "text_4": "SAISONBEGINN",
-        "text_5": "INFRASTRUKTUR"
-      },
+      "popup_name": "BADEGEWAESSERNAME",
+      "pop_details": [
+        { "label": "EINSTUFUNG_ODER_VORABBEWERTUNG", "prop": "EINSTUFUNG_ODER_VORABBEWERTUNG" },
+        { "label": "GEWAESSERKATEGORIE", "prop": "GEWAESSERKATEGORIE" },
+        { "label": "SICHTTIEFE", "prop": "SICHTTIEFE" },
+        { "label": "SAISONBEGINN", "prop": [{ "option": "SAISONBEGINN" }, { "option": "SAISONENDE" }, { "option": "GESCHLOSSEN" }] },
+        { "label": "INFRASTRUKTUR", "prop": "INFRASTRUKTUR" }
+      ],
       "slider": "yes"
     }
 }

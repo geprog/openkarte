@@ -107,9 +107,12 @@
       "type": "geo",
       "value_group": "wasserstand",
       "display_option": "line chart",
-      "display_option_name": "WK_NAME",
-      "x_axis": "Zeit",
-      "y_axis": "wasserstand",
+      "chart_name": "WK_NAME",
+      "chart_legend": "Tiefe im Zeitverlauf",
+      "x_axis_label": "Datum",
+      "y_axis_label": "Tiefe (m)",
+      "x_axis_data": "Zeit",
+      "y_axis_data": "wasserstand",
       "slider": "no"
     }
 }

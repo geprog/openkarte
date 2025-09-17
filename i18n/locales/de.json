@@ -1,22 +1,9 @@
 {
   "openMap": "OpenKarte",
-  "quality": "Qualität",
-  "category": "Kategorie",
-  "depth": "Tiefe",
-  "seasonal": "Saisonal",
-  "infrastructure": "Infrastruktur",
   "mapDisplayOption": "Karten Display Optionen",
-  "bathing": "Badegewässer Stammdaten",
-  "busStops": "Norderstedt Bushaltestelle Daten",
-  "lakeData": "See-Wasserkörper Daten",
   "selectedDate": "Gewähltes Datum",
-  "waterLevelOfLake": "Wasserpegel des Sees",
-  "waterLevel": "Wasserpegel",
   "notAvailable": "Nicht verfügbar",
   "loadingText": "Laden der Daten, bitte warten...",
-  "date": "Datum",
-  "depthInMeter": "Tiefe (m)",
   "depthFor": "Tiefe für",
-  "depthOverTime": "Tiefe im Zeitverlauf",
   "noDepthsAvailableMessage": "Es sind keine Tiefenangaben verfügbar für"
 }

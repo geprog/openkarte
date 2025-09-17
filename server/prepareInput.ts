@@ -1,5 +1,5 @@
-import bathingJson from '~/data/bathingWaterInputLayer.json';
-import lakesJson from '~/data/lakesInputLayer.json';
+import fs from 'node:fs';
+import path from 'node:path';
 import { fetchData, fetchMappings } from '~/server/fetchData';
 
 export interface Dataset {
@@ -31,15 +31,19 @@ export interface InputJSON {
 }
 
 export async function getData(feature: string) {
-  if (feature === 'bathing') {
-    const fetchedData = await fetchData(bathingJson as InputJSON);
-    return await fetchMappings(fetchedData, bathingJson as InputJSON);
+  // eslint-disable-next-line node/prefer-global/process
+  const dataDir = path.resolve(process.cwd(), 'data');
+  const files = fs.readdirSync(dataDir);
+
+  const file = files.find(f => f.toLowerCase().includes(feature.toLowerCase()) && f.endsWith('InputLayer.json'));
+
+  if (!file) {
+    return `Unavailable Feature Requested: ${feature}`;
   }
-  else if (feature === 'lakeData') {
-    const fetchedData = await fetchData(lakesJson as InputJSON);
-    return await fetchMappings(fetchedData, lakesJson as InputJSON);
-  }
-  else {
-    return 'Unavailable Feature Requested!';
-  }
+
+  const filePath = path.join(dataDir, file);
+  const jsonString = fs.readFileSync(filePath, 'utf-8');
+  const input: InputJSON = JSON.parse(jsonString);
+  const fetchedData = await fetchData(input);
+  return await fetchMappings(fetchedData, input);
 }

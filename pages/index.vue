@@ -19,7 +19,7 @@
         <span class="text-lg font-semibold">{{ t('openMap') }}</span>
       </div>
       <div v-if="feature" class="text-lg font-semibold">
-        {{ t(feature) }}
+        {{ featureOptions.find((opt: MapDisplayOptions) => opt.name === feature)?.title }}
       </div>
       <div class="flex gap-4 px-4">
         <UButton
@@ -46,18 +46,13 @@
         </div>
         <ul class="space-y-2">
           <li
+            v-for="opt in featureOptions"
+            :key="opt.name"
             class="cursor-pointer hover:text-blue-200"
-            :class="{ 'font-bold underline': feature === 'bathing' }"
-            @click="setFeature('bathing')"
+            :class="{ 'font-bold underline': feature === opt.name }"
+            @click="setFeature(opt.name)"
           >
-            {{ t('bathing') }}
-          </li>
-          <li
-            class="cursor-pointer hover:text-blue-200"
-            :class="{ 'font-bold underline': feature === 'lakeData' }"
-            @click="setFeature('lakeData')"
-          >
-            {{ t('lakeData') }}
+            {{ opt.title }}
           </li>
         </ul>
       </aside>
@@ -72,7 +67,7 @@
 
         <MyLeafletMap ref="leafletMapRef" :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
         <Slider
-          v-if="feature === 'bathing' && dateOptions"
+          v-if="hasSlider && dateOptions"
           :date-group="dateGroup"
           :date-options="dateOptions"
           :selected-index="selectedIndex"
@@ -83,7 +78,6 @@
         <PopupInfo
           v-if="selectedItem?.properties.options.display_option === 'popup'"
           :selected-item="selectedItem"
-          :popup-config="createPopupConfig(selectedItem)"
           @close="selectedItem = null"
           @marker-reset="onMarkerReset"
         />
@@ -91,7 +85,7 @@
           v-if="selectedItem?.properties.options.display_option === 'line chart'"
           class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-2xl"
         >
-          <LineChart v-if="selectedItem" :chart-data="chartData" :name="name" class="mt-4" @close="selectedItem = null" />
+          <LineChart v-if="selectedItem" :chart-data="chartData" :selected-item="selectedItem" class="mt-4" @close="selectedItem = null" />
         </div>
       </main>
     </div>
@@ -106,8 +100,10 @@ import LineChart from '~/components/LineChart.vue';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
 import PopupInfo from '~/components/PopupInfo.vue';
 import Slider from '~/components/Slider.vue';
-import { createPopupConfig } from '~/composables/popupConfig';
 import { getDateOptions, getDatesGroups } from '~/composables/useSliderDates';
+import featureOptionsJson from '~/data/mapDisplayOptions.json';
+
+const featureOptions = featureOptionsJson.options;
 
 const leafletMapRef = ref<InstanceType<typeof MyLeafletMap> | null>(null);
 const { t, locale, setLocale } = useI18n();
@@ -117,7 +113,6 @@ const isSmallScreen = computed(() => {
 const sidebarOpen = ref(false);
 const fetchedData = ref();
 const seriesData = ref<FeatureCollection[]>([]);
-type FeatureType = 'bathing' | 'lakeData';
 const colorMode = useColorMode();
 
 const isDark = computed({
@@ -132,31 +127,28 @@ const isDark = computed({
 const localeItems = ref([{ value: 'en', icon: 'i-emojione-v1-flag-for-united-kingdom' }, { value: 'de', icon: 'i-emojione-v1-flag-for-germany' }] satisfies SelectItem[]);
 const selectedLocaleIcon = computed(() => localeItems.value.find(item => item.value === locale.value)?.icon);
 
-const feature = ref<FeatureType | null>(null);
+const feature = ref<string | null>(null);
 const selectedIndex = ref(0);
 const selectedItem = ref<Feature | null>(null);
 const selectedDate = ref();
 let dateOptions: DateOptions[];
 let dateGroup: DateGroup[];
-let name: string;
 const loading = ref(false);
+const hasSlider = ref(false);
 
 const chartData = computed(() => {
   const data = selectedItem.value;
   if (!data || !data.properties.match?.[0]) {
-    name = data?.properties[data.properties.options.display_option_name];
     return [];
   }
-
-  name = data.properties[data.properties.options.display_option_name];
   const series = data.properties.match[0];
   return series.map((entry: DataEntry) => ({
-    date: entry[data.properties.options.x_axis],
-    value: entry[data.properties.options.y_axis],
+    date: entry[data.properties.options.x_axis_data],
+    value: entry[data.properties.options.y_axis_data],
   }));
 });
 
-function setFeature(f: FeatureType) {
+function setFeature(f: string) {
   feature.value = f;
 }
 
@@ -182,8 +174,9 @@ watch(feature, async () => {
 
     if (status.value !== 'pending' && response.value) {
       const resp = response.value as NormalizedResponse;
+      hasSlider.value = (resp.datasets as FeatureCollection[]).flat().some(item => item.features[0].properties.options?.slider?.toLowerCase() === 'yes');
 
-      if (feature.value === 'bathing') {
+      if (hasSlider.value) {
         fetchedData.value = [];
         seriesData.value = [];
         seriesData.value = resp.datasets;
@@ -192,7 +185,7 @@ watch(feature, async () => {
         selectedIndex.value = dateOptions.length - 1;
         selectedDate.value = dateOptions[selectedIndex.value];
       }
-      else if (feature.value === 'lakeData') {
+      else {
         fetchedData.value = [];
         fetchedData.value = resp.datasets[0];
       }

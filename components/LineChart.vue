@@ -12,7 +12,7 @@
       <Line :data="data" :options="options" />
     </div>
     <div v-else class="text-white text-center py-4">
-      {{ t('noDepthsAvailableMessage') }} <span class="font-semibold">{{ props.name || 'this location' }}</span>.
+      {{ t('noDepthsAvailableMessage') }} <span class="font-semibold">{{ props.selectedItem.properties[props.selectedItem.properties.options.chart_name] || 'this location' }}</span>.
     </div>
   </div>
 </template>
@@ -34,7 +34,7 @@ import { Line } from 'vue-chartjs';
 
 const props = defineProps<{
   chartData: { date: string, value: string }[]
-  name?: string
+  selectedItem: Feature
 }>();
 const emit = defineEmits<{
   (e: 'close'): void
@@ -43,7 +43,7 @@ const { t } = useI18n();
 ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale);
 
 const chartReady = computed(() => Array.isArray(props.chartData) && props.chartData.length > 0);
-const chartTitle = computed(() => props.name ? `${t('depthFor')} ${props.name}` : `No recorded depth for ${props.name}`);
+const chartTitle = computed(() => props.selectedItem.properties[props.selectedItem.properties.options.chart_name] ? props.selectedItem.properties[props.selectedItem.properties.options.chart_name] : `No recorded depth for ${props.selectedItem.properties[props.selectedItem.properties.options.chart_name]}`);
 
 const labels = computed(() =>
   props.chartData.map(d => d.date.split(' ')[0]),
@@ -57,11 +57,14 @@ const data = computed(() => ({
   labels: labels.value,
   datasets: [
     {
-      label: t('depthOverTime'),
+      label: props.selectedItem.properties.options.chart_legend,
       data: values.value,
-      backgroundColor: '#ffffff',
-      borderWidth: -0.5,
-      pointRadius: 1.5,
+      borderColor: '#4ade80', // nice green
+      backgroundColor: '#4ade80',
+      borderWidth: 2,
+      tension: 0.3, // smooth line
+      pointRadius: 3,
+      pointHoverRadius: 5,
     },
   ],
 }));
@@ -83,7 +86,7 @@ const options = computed(() => ({
     y: {
       title: {
         display: true,
-        text: t('depthInMeter'),
+        text: props.selectedItem.properties.options.y_axis_label,
         color: '#ffffff',
       },
       ticks: {
@@ -93,7 +96,7 @@ const options = computed(() => ({
     x: {
       title: {
         display: true,
-        text: t('date'),
+        text: props.selectedItem.properties.options.x_axis_label,
         color: '#ffffff',
       },
       ticks: {
