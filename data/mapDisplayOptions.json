@@ -1,7 +1,7 @@
 {
   "options": [
-    { "name": "bathing", "title": "Badegewässer Stammdaten" },
-    { "name": "lakes", "title": "See-Wasserkörper Daten" },
-    { "name": "trees", "title": "Bäume Daten" }
+    { "name": "bathing", "title": "Badegewässer" },
+    { "name": "lakes", "title": "Pegelstände" },
+    { "name": "trees", "title": "Bäume Norderstedt" }
   ]
 }
