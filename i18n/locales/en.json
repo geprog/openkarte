@@ -3,7 +3,5 @@
   "mapDisplayOption": "Map Display Options",
   "selectedDate": "Selected Date",
   "notAvailable": "Not Available",
-  "loadingText": "Loading data, please wait...",
-  "depthFor": "Depth for",
-  "noDepthsAvailableMessage": "No recorded depths are available for"
+  "loadingText": "Loading data, please wait..."
 }

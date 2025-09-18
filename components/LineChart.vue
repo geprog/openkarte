@@ -8,12 +8,7 @@
       &times;
     </button>
 
-    <div v-if="chartReady">
-      <Line :data="data" :options="options" />
-    </div>
-    <div v-else class="text-white text-center py-4">
-      {{ t('noDepthsAvailableMessage') }} <span class="font-semibold">{{ props.selectedItem.properties[props.selectedItem.properties.options.chart_name] || 'this location' }}</span>.
-    </div>
+    <Line :data="data" :options="options" />
   </div>
 </template>
 
@@ -39,11 +34,9 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'close'): void
 }>();
-const { t } = useI18n();
 ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale);
 
-const chartReady = computed(() => Array.isArray(props.chartData) && props.chartData.length > 0);
-const chartTitle = computed(() => props.selectedItem.properties[props.selectedItem.properties.options.chart_name] ? props.selectedItem.properties[props.selectedItem.properties.options.chart_name] : `No recorded depth for ${props.selectedItem.properties[props.selectedItem.properties.options.chart_name]}`);
+const chartTitle = computed(() => props.selectedItem.properties[props.selectedItem.properties.options.chart_name]);
 
 const labels = computed(() =>
   props.chartData.map(d => d.date.split(' ')[0]),

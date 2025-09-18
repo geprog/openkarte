@@ -3,7 +3,5 @@
   "mapDisplayOption": "Karten Display Optionen",
   "selectedDate": "Gewähltes Datum",
   "notAvailable": "Nicht verfügbar",
-  "loadingText": "Laden der Daten, bitte warten...",
-  "depthFor": "Tiefe für",
-  "noDepthsAvailableMessage": "Es sind keine Tiefenangaben verfügbar für"
+  "loadingText": "Laden der Daten, bitte warten..."
 }
