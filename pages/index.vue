@@ -2,90 +2,55 @@
   <div class="h-screen w-screen flex flex-col">
     <header class="bg-blue shadow flex items-center justify-between">
       <div class="flex items-center space-x-2">
-        <button
-          class="p-2 bg-blue rounded hover:bg-blue-600 flex items-center space-x-2"
-          @click="sidebarOpen = !sidebarOpen"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
-            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
-          >
-            <path
-              stroke-linecap="round" stroke-linejoin="round"
-              d="M4 6h16M4 12h16M4 18h16"
-            />
+        <button class="p-2 bg-blue rounded hover:bg-blue-600 flex items-center space-x-2"
+          @click="sidebarOpen = !sidebarOpen">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
         <span class="text-lg font-semibold">{{ t('openMap') }}</span>
       </div>
       <div v-if="feature" class="text-lg font-semibold">
-        {{ featureOptions.find((opt: MapDisplayOptions) => opt.name === feature)?.title }}
+        {{featureOptions.find((opt: MapDisplayOptions) => opt.name === feature)?.title}}
       </div>
       <div class="flex gap-4 px-4">
-        <UButton
-          :icon="isDark ? 'i-lucide-moon' : 'i-lucide-sun'"
-          color="neutral"
-          variant="ghost"
-          @click="isDark = !isDark"
-        />
+        <UButton :icon="isDark ? 'i-lucide-moon' : 'i-lucide-sun'" color="neutral" variant="ghost"
+          @click="isDark = !isDark" />
 
         <USelect v-model="locale" :items="localeItems" :icon="selectedLocaleIcon" :ui="{ placeholder: 'hidden' }" />
       </div>
     </header>
 
     <div class="flex flex-1 overflow-hidden">
-      <aside
-        v-show="sidebarOpen"
-        class="bg-blue w-64 border-r p-4 overflow-y-auto transition-all duration-300"
-      >
+      <aside v-show="sidebarOpen" class="bg-blue w-64 border-r p-4 overflow-y-auto transition-all duration-300">
         <div class="flex justify-between items-center font-semibold text-lg mb-4">
           <h3>{{ t('mapDisplayOption') }}</h3>
-          <button class="text-lg" @click="sidebarOpen = false">
-            &times;
-          </button>
         </div>
         <ul class="space-y-2">
-          <li
-            v-for="opt in featureOptions"
-            :key="opt.name"
-            class="cursor-pointer hover:text-blue-200"
-            :class="{ 'font-bold underline': feature === opt.name }"
-            @click="setFeature(opt.name)"
-          >
+          <li v-for="opt in featureOptions" :key="opt.name" class="cursor-pointer hover:text-blue-200"
+            :class="{ 'font-bold underline': feature === opt.name }" @click="setFeature(opt.name)">
             {{ opt.title }}
           </li>
         </ul>
       </aside>
 
       <main class="flex-1 relative">
-        <div
-          v-if="loading"
-          class="absolute inset-0 z-[9999] flex items-center justify-center bg-white/50 backdrop-blur-sm cursor-not-allowed"
-        >
+        <div v-if="loading"
+          class="absolute inset-0 z-[9999] flex items-center justify-center bg-white/50 backdrop-blur-sm cursor-not-allowed">
           <LoadingSpinner />
         </div>
 
         <MyLeafletMap ref="leafletMapRef" :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
-        <Slider
-          v-if="hasSlider && dateOptions"
-          :date-group="dateGroup"
-          :date-options="dateOptions"
-          :selected-index="selectedIndex"
-          :selected-date="selectedDate"
-          :is-small-screen="isSmallScreen"
-          @update:selected-index="selectedIndex = $event"
-        />
-        <PopupInfo
-          v-if="selectedItem?.properties.options.display_option === 'popup'"
-          :selected-item="selectedItem"
-          @close="selectedItem = null"
-          @marker-reset="onMarkerReset"
-        />
-        <div
-          v-if="selectedItem?.properties.options.display_option === 'line chart'"
-          class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-2xl"
-        >
-          <LineChart v-if="selectedItem" :chart-data="chartData" :selected-item="selectedItem" class="mt-4" @close="selectedItem = null" />
+        <Slider v-if="hasSlider && dateOptions" :date-group="dateGroup" :date-options="dateOptions"
+          :selected-index="selectedIndex" :selected-date="selectedDate" :is-small-screen="isSmallScreen"
+          @update:selected-index="selectedIndex = $event" />
+        <PopupInfo v-if="selectedItem?.properties.options.display_option === 'popup'" :selected-item="selectedItem"
+          @close="selectedItem = null" @marker-reset="onMarkerReset" />
+        <div v-if="selectedItem?.properties.options.display_option === 'line chart'"
+          class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-2xl">
+          <LineChart v-if="selectedItem" :chart-data="chartData" :selected-item="selectedItem" class="mt-4"
+            @close="selectedItem = null" />
         </div>
       </main>
     </div>
@@ -105,6 +70,9 @@ import featureOptionsJson from '~/data/mapDisplayOptions.json';
 
 const featureOptions = featureOptionsJson.options;
 
+const router = useRouter();
+const route = useRoute();
+
 const leafletMapRef = ref<InstanceType<typeof MyLeafletMap> | null>(null);
 const { t, locale, setLocale } = useI18n();
 const isSmallScreen = computed(() => {
@@ -112,7 +80,7 @@ const isSmallScreen = computed(() => {
 });
 const sidebarOpen = ref(false);
 const fetchedData = ref();
-const seriesData = ref<FeatureCollection[]>([]);
+const seriesData = ref<GeoJSON.FeatureCollection[]>([]);
 const colorMode = useColorMode();
 
 const isDark = computed({
@@ -127,7 +95,10 @@ const isDark = computed({
 const localeItems = ref([{ value: 'en', icon: 'i-emojione-v1-flag-for-united-kingdom' }, { value: 'de', icon: 'i-emojione-v1-flag-for-germany' }] satisfies SelectItem[]);
 const selectedLocaleIcon = computed(() => localeItems.value.find(item => item.value === locale.value)?.icon);
 
-const feature = ref<string | null>(null);
+const feature = computed<string | null>(() => {
+  return (route.query.feature as string) || null;
+});
+
 const selectedIndex = ref(0);
 const selectedItem = ref<Feature | null>(null);
 const selectedDate = ref();
@@ -149,7 +120,7 @@ const chartData = computed(() => {
 });
 
 function setFeature(f: string) {
-  feature.value = f;
+  router.push({ path: '', query: { feature: f } })
 }
 
 watch(selectedIndex, (newIndex) => {
@@ -164,35 +135,34 @@ function onMarkerReset() {
 
 watch(feature, async () => {
   loading.value = true;
+  fetchedData.value = [];
+  seriesData.value = [];
+  hasSlider.value = false;
   if (feature.value) {
-    const { execute, data: response, status } = useLazyFetch(
-      `/api/fetchOpenData?feature=${encodeURIComponent(feature.value)}`,
-      { immediate: false },
-    );
+    try {
+      const response = await $fetch(
+        `/api/fetchOpenData?feature=${encodeURIComponent(feature.value)}`,
+      );
 
-    await execute();
-
-    if (status.value !== 'pending' && response.value) {
-      const resp = response.value as NormalizedResponse;
-      hasSlider.value = (resp.datasets as FeatureCollection[]).flat().some(item => item.features[0].properties.options?.slider?.toLowerCase() === 'yes');
+      const featureCollections = (response as GeoJSON.FeatureCollection[]);
+      hasSlider.value = featureCollections.flat().some(item => item.features[0].properties?.options?.slider?.toLowerCase() === 'yes');
 
       if (hasSlider.value) {
-        fetchedData.value = [];
-        seriesData.value = [];
-        seriesData.value = resp.datasets;
+        seriesData.value = featureCollections;
         dateOptions = getDateOptions(seriesData.value);
         dateGroup = getDatesGroups(seriesData.value);
         selectedIndex.value = dateOptions.length - 1;
         selectedDate.value = dateOptions[selectedIndex.value];
       }
       else {
-        fetchedData.value = [];
-        fetchedData.value = resp.datasets[0];
+        fetchedData.value = featureCollections[0];
       }
+    } catch (error) {
+      console.error('Error fetching data:', error);
     }
+    loading.value = false;
   }
-  loading.value = false;
-});
+}, { immediate: true });
 
 watch(locale, (newLocale) => {
   setLocale(newLocale);
