@@ -40,7 +40,7 @@ export async function getData(feature: string) {
   const file = files.find(f => f.toLowerCase().includes(feature.toLowerCase()) && f.endsWith('InputLayer.json'));
 
   if (!file) {
-    return `Unavailable Feature Requested: ${feature}`;
+    throw new Error(`Unavailable Feature Requested: ${feature}`);
   }
 
   const filePath = path.join(dataDir, file);
