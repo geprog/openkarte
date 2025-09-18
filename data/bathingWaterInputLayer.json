@@ -111,11 +111,11 @@
       "value_group": "",
       "display_option": "popup",
       "popup_name": "BADEGEWAESSERNAME",
-      "pop_details": [
+      "popup_details": [
         { "label": "EINSTUFUNG_ODER_VORABBEWERTUNG", "prop": "EINSTUFUNG_ODER_VORABBEWERTUNG" },
         { "label": "GEWAESSERKATEGORIE", "prop": "GEWAESSERKATEGORIE" },
         { "label": "SICHTTIEFE", "prop": "SICHTTIEFE" },
-        { "label": "SAISONBEGINN", "prop": [{ "option": "SAISONBEGINN" }, { "option": "SAISONENDE" }, { "option": "GESCHLOSSEN" }] },
+        { "label": "SAISON", "prop": ["SAISONBEGINN", "SAISONENDE", "GESCHLOSSEN"] },
         { "label": "INFRASTRUKTUR", "prop": "INFRASTRUKTUR" }
       ],
       "slider": "yes",

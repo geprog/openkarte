@@ -24,7 +24,7 @@
       "value_group": "",
       "display_option": "popup",
       "popup_name": "STANDORT",
-      "pop_details": [
+      "popup_details": [
         { "label": "BAUMART", "prop": "BAUMART" },
         { "label": "PFLANZJAHR", "prop": "PFLANZJAHR" },
         { "label": "TYP", "prop": "typ" },

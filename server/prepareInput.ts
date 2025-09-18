@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { Options } from '~/composables/dataTypes';
 import { fetchData, fetchMappings } from '~/server/fetchData';
 
 export interface Dataset {
@@ -16,14 +17,6 @@ export interface Mappings {
   condition: string
   target_db_id: string
   target_db_field: string
-}
-export interface Options {
-  label_option: string
-  legend_option: string
-  type: string
-  value_group: string
-  coordinate_field_x?: string
-  coordinate_field_y?: string
 }
 
 export interface InputJSON {
