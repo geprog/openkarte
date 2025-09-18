@@ -10,7 +10,7 @@ import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 
 const props = defineProps<{
-  fetchedData?: GeoJSON.FeatureCollection
+  fetchedData?: GeoJSON.FeatureCollection | null
 }>();
 const emit = defineEmits<{
   (e: 'marker-click', feature: GeoJSON.Feature): void
@@ -275,12 +275,6 @@ onMounted(() => {
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(leafletMap);
-
-  clearMarkers();
-  clearLegend();
-  if (!props.fetchedData) {
-    renderMarkers(props.fetchedData);
-  }
 });
 
 watch(() => props.fetchedData, (newData) => {

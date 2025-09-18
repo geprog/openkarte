@@ -29,14 +29,18 @@ import { Line } from 'vue-chartjs';
 
 const props = defineProps<{
   chartData: { date: string, value: string }[]
-  selectedItem: Feature
+  selectedItem: GeoJSON.Feature
 }>();
 const emit = defineEmits<{
   (e: 'close'): void
 }>();
 ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale);
 
-const chartTitle = computed(() => props.selectedItem.properties[props.selectedItem.properties.options.chart_name]);
+const properties = computed(() => {
+  return props.selectedItem.properties || {};
+});
+
+const chartTitle = computed(() => properties.value[properties.value.options.chart_name]);
 
 const labels = computed(() =>
   props.chartData.map(d => d.date.split(' ')[0]),
@@ -50,7 +54,7 @@ const data = computed(() => ({
   labels: labels.value,
   datasets: [
     {
-      label: props.selectedItem.properties.options.chart_legend,
+      label: properties.value.options.chart_legend,
       data: values.value,
       borderColor: '#4ade80', // nice green
       backgroundColor: '#4ade80',
@@ -79,7 +83,7 @@ const options = computed(() => ({
     y: {
       title: {
         display: true,
-        text: props.selectedItem.properties.options.y_axis_label,
+        text: properties.value.options.y_axis_label,
         color: '#ffffff',
       },
       ticks: {
@@ -89,7 +93,7 @@ const options = computed(() => ({
     x: {
       title: {
         display: true,
-        text: props.selectedItem.properties.options.x_axis_label,
+        text: properties.value.options.x_axis_label,
         color: '#ffffff',
       },
       ticks: {

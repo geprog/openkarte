@@ -45,9 +45,9 @@
         <Slider v-if="hasSlider && dateOptions" :date-group="dateGroup" :date-options="dateOptions"
           :selected-index="selectedIndex" :selected-date="selectedDate" :is-small-screen="isSmallScreen"
           @update:selected-index="selectedIndex = $event" />
-        <PopupInfo v-if="selectedItem?.properties.options.display_option === 'popup'" :selected-item="selectedItem"
+        <PopupInfo v-if="selectedItem?.properties?.options?.display_option === 'popup'" :selected-item="selectedItem"
           @close="selectedItem = null" @marker-reset="onMarkerReset" />
-        <div v-if="selectedItem?.properties.options.display_option === 'line chart'"
+        <div v-if="selectedItem?.properties?.options?.display_option === 'line chart'"
           class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-2xl">
           <LineChart v-if="selectedItem" :chart-data="chartData" :selected-item="selectedItem" class="mt-4"
             @close="selectedItem = null" />

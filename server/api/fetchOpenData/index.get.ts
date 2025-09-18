@@ -1,4 +1,4 @@
-import { FetchedDataArray } from '~/server/fetchData';
+import { type FetchedDataArray } from '~/server/fetchData';
 import { getData } from '~/server/prepareInput';
 
 const cache: Record<string, {
