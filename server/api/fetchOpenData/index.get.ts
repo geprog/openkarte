@@ -16,10 +16,10 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Missing feature',
     });
   }
-  console.info('Fetching data for feature:', feature);
+  console.info('Fetching data for feature:', feature); // eslint-disable-line no-console
   try {
     if (cache[feature] && (Date.now() - cache[feature].timestamp < CACHE_DURATION)) {
-      console.info('Returning cached data for feature:', feature);
+      console.info('Returning cached data for feature:', feature); // eslint-disable-line no-console
       return cache[feature].data;
     }
     const data = await getData(feature);

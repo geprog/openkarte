@@ -112,6 +112,6 @@
       "x_axis_label": "Datum",
       "y_axis_label": "Pegelstand (m)",
       "x_axis_data": "Zeit",
-      "y_axis_data": "wasserstand",
+      "y_axis_data": "wasserstand"
     }
 }
