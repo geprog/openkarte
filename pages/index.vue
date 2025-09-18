@@ -158,6 +158,7 @@ watch(feature, async () => {
   seriesData.value = [];
   hasSlider.value = false;
   selectedItem.value = null;
+  selectedIndex.value = 0;
   if (feature.value) {
     try {
       const response = await $fetch(
