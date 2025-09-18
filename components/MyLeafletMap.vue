@@ -3,276 +3,255 @@
 </template>
 
 <script setup lang="ts">
-import type { MergedData } from '~/composables/useFetchOpenData';
 import L, { Control } from 'leaflet';
 import { onMounted, ref, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-// light yellow to dark red
 
 const props = defineProps<{
-  waterBodies: MergedData[]
-  featureDisplay: 'bathing' | 'busStops' | 'lakeData' | null
-  busStops?: GeoJSON.Feature<GeoJSON.Point, unknown>[]
-  lakeData?: GeoJSON.Feature<GeoJSON.Geometry, { WK_NAME: string, lakeDepth: LakeDepth[] }>[]
-  selectedLakeDate?: string
+  fetchedData?: GeoJSON.FeatureCollection | null
 }>();
 const emit = defineEmits<{
-  (e: 'marker-click', data: MergedData): void
+  (e: 'marker-click', feature: GeoJSON.Feature): void
 }>();
-const markers: L.Layer[] = [];
-const busStopMarkers: L.Layer[] = [];
-const lakeMarkers: L.Layer[] = [];
-let selectedMarker: L.CircleMarker | null = null;
+let selectedMarker: L.Layer | null = null;
+const originalMarkerStyleMap = new Map<L.Layer, L.PathOptions>();
 let legendControl: L.Control | null = null;
+const geoJsonLayers: L.GeoJSON[] = [];
 
 const map = ref<HTMLDivElement | null>(null);
 
-const { t } = useI18n();
-
 let leafletMap: L.Map | null = null;
 
-function getColorForDepth(depth: number | undefined, minDepth: number, maxDepth: number): string {
-  if (depth === undefined) {
-    return 'rgb(150, 150, 150)';
+function findValueByKey(obj: unknown, key: string): string | number | undefined {
+  if (typeof obj !== 'object' || obj === null)
+    return undefined;
+
+  const record = obj as Record<string, unknown>;
+
+  if (key in record) {
+    const value = record[key];
+    if (typeof value === 'string' || typeof value === 'number')
+      return value;
   }
-  if (minDepth === maxDepth)
-    return 'rgb(255,0,0)'; // fallback if all depths are same
-  const ratio = (depth - minDepth) / (maxDepth - minDepth);
-  const red = Math.floor(255 * ratio);
-  const blue = Math.floor(255 * (1 - ratio));
-  return `rgb(${red},0,${blue})`;
-}
-function getColorByFeature(value: string, feature: string): string {
-  const colorSets: Record<string, Record<string, string>> = {
-    bathing: {
-      'ausgezeichnet (Überprüfung nur bei Änderung der Einstufung)': '#4CAF50',
-      'gut (Überprüfung mindestens alle vier Jahre)': '#2196F3',
-      'ausreichend (Überprüfung mindestens alle 3 J)': '#FFEB3B',
-      'mangelhaft (Überprüfung mindestens alle 2 J)': '#F44336',
-      'changes': '#FF9800',
-      'neu': '#9C27B0',
-      'ohne Bewertung': '#9E9E9E',
-    },
-    traffic: {
-    },
-  };
-  return colorSets[feature]?.[value] || '#999999';
+
+  for (const value of Object.values(record)) {
+    const result = findValueByKey(value, key);
+    if (result !== undefined)
+      return result;
+  }
+
+  return undefined;
 }
 
-function createLegend(values: string[], feature: string) {
+function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
+  const colorMap = new Map<string, string>();
   const legend = new Control({ position: 'topleft' });
 
-  legend.onAdd = () => {
-    const div = L.DomUtil.create('div', 'info legend');
+  const legendDisplayOption: string[] = Array.from(
+    new Set(
+      data.features.map(
+        f => f.properties?.options?.legend_option ?? 'default',
+      ),
+    ),
+  );
 
-    values.forEach((val) => {
-      const color = getColorByFeature(val, feature);
-      div.innerHTML += `
-        <i style="background:${color}; width: 12px; height: 12px; display: inline-block; margin-right: 8px;"></i>
-        <span style="color: black;">${val}</span><br>`;
+  const labelKey: string | undefined = data.features[0]?.properties?.options?.label_option;
+  const key = labelKey ?? 'default';
+
+  const rawValues: (string | number)[] = data.features.map(f => findValueByKey(f, key) ?? 'default');
+
+  const uniqueValues: string[] = Array.from(
+    new Set(rawValues.map(v => String(v))),
+  );
+
+  if (legendDisplayOption[0] === 'default') {
+    uniqueValues.forEach((value, i) => {
+      colorMap.set(value, generateColor(i, uniqueValues.length));
     });
 
-    return div;
-  };
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'info legend');
+      div.setAttribute(
+        'style',
+        'background: white; padding: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);',
+      );
 
-  return legend;
-}
+      uniqueValues.forEach((value) => {
+        const color = colorMap.get(value);
+        div.innerHTML += `
+          <div style="color:black; margin-bottom:4px;">
+            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${value}
+          </div>`;
+      });
 
-function renderMarkers(data: typeof props.waterBodies, feature: string) {
-  clearMarkers();
-  data.forEach((item) => {
-    const lat = Number.parseFloat(item.bathing.GEOGR_BREITE);
-    const lng = Number.parseFloat(item.bathing.GEOGR_LAENGE);
+      return div;
+    };
+  }
+  else if (legendDisplayOption[0] === 'colorVarient') {
+    const numericValues: number[] = uniqueValues
+      .map(v => +v)
+      .filter(v => !Number.isNaN(v));
 
-    let value = '';
-    switch (feature) {
-      case 'bathing':
-        value = item.classification?.EINSTUFUNG_ODER_VORABBEWERTUNG || 'default';
-        break;
-      case 'traffic':
-        value = item.measurements?.GEWAESSERKATEGORIE || 'default';
-        break;
-      default:
-        value = 'default';
+    if (numericValues.length === 0)
+      return colorMap;
+
+    const min = Math.min(...numericValues);
+    const max = Math.max(...numericValues);
+
+    const numBins = 5;
+    const step = (max - min) / numBins;
+
+    const bins: [number, number][] = [];
+    for (let i = 0; i < numBins; i++) {
+      const start = min + i * step;
+      const end = i === numBins - 1 ? max : start + step;
+      bins.push([start, end]);
     }
 
-    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-      const marker = L.circleMarker([lat, lng], {
-        radius: 6,
-        color: getColorByFeature(value, feature),
-        fillColor: getColorByFeature(value, feature),
-        fillOpacity: 0.8,
-        weight: 1,
-      })
-        .addTo(leafletMap as L.Map)
-        .on('click', () => {
-          if (selectedMarker) {
-            selectedMarker.setStyle({
-              radius: 6,
-              weight: 1,
-              color: selectedMarker.options.fillColor ?? '#999999',
+    function getBinLabel(value: number): string {
+      for (const [start, end] of bins) {
+        if (value >= start && value <= end)
+          return `${start.toFixed(1)} - ${end.toFixed(1)}`;
+      }
+      return 'default';
+    }
+
+    bins.forEach(([start, end], i) => {
+      const label = `${start.toFixed(1)} - ${end.toFixed(1)}`;
+      colorMap.set(label, generateColor(i, bins.length));
+    });
+
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'info legend');
+      div.setAttribute(
+        'style',
+        'background: white; padding: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);',
+      );
+
+      bins.forEach(([start, end]) => {
+        const label = `${start.toFixed(1)} - ${end.toFixed(1)}`;
+        const color = colorMap.get(label);
+        div.innerHTML += `
+          <div style="color:black; margin-bottom:4px;">
+            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
+          </div>`;
+      });
+
+      return div;
+    };
+
+    data.features.forEach((feature) => {
+      const key = labelKey ?? 'default';
+      const val = +(findValueByKey(feature, key) ?? 0);
+      if (!feature.properties) {
+        feature.properties = {};
+      }
+      feature.properties.__binLabel = getBinLabel(val);
+    });
+  }
+
+  if (leafletMap) {
+    legend.addTo(leafletMap);
+    legendControl = legend;
+  }
+
+  return colorMap;
+}
+
+function generateColor(index: number, total: number): string {
+  const allowedRanges = [
+    { start: 30, end: 330 },
+  ];
+
+  const range = allowedRanges[0];
+  const hue = range.start + (index * (range.end - range.start)) / total;
+
+  return `hsl(${hue}, 70%, 40%)`;
+}
+
+function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
+  if (!data)
+    return;
+
+  clearMarkers();
+  clearLegend();
+
+  const colorMap = generateLabels(data);
+  originalMarkerStyleMap.clear();
+
+  data.features.forEach((feature) => {
+    const legendOption = feature.properties?.options?.legend_option;
+    const labelOption = feature.properties?.options?.label_option;
+    let key = labelOption ? feature.properties?.[labelOption] : undefined;
+
+    if (legendOption === 'colorVarient') {
+      key = feature.properties?.__binLabel;
+    }
+
+    const color = colorMap.get(key) ?? '#999';
+
+    const geoJsonLayer = L.geoJSON(feature, {
+      style: () => ({
+        color,
+        weight: 2,
+        opacity: 1,
+        fillColor: color,
+        fillOpacity: 0.7,
+      }),
+      pointToLayer: (feature, latlng) => {
+        const style: L.CircleMarkerOptions = {
+          radius: 6,
+          color,
+          fillColor: color,
+          fillOpacity: 0.8,
+          weight: 1,
+        };
+
+        const marker = L.circleMarker(latlng, style);
+        originalMarkerStyleMap.set(marker, style);
+        return marker;
+      },
+      onEachFeature: (feature, layer) => {
+        layer.on('click', () => {
+          if (selectedMarker instanceof L.CircleMarker && originalMarkerStyleMap.has(selectedMarker)) {
+            selectedMarker.setStyle(originalMarkerStyleMap.get(selectedMarker)!);
+          }
+
+          if (layer instanceof L.CircleMarker) {
+            layer.setStyle({
+              radius: 10,
+              weight: 3,
+              color: '#0f172b',
+              fillColor: '#0f172b',
+              fillOpacity: 1,
             });
           }
-          marker.setStyle({
-            radius: 10,
-            weight: 3,
-            color: '#0f172b',
-          });
 
-          selectedMarker = marker;
+          selectedMarker = layer;
           // eslint-disable-next-line vue/custom-event-name-casing
-          emit('marker-click', item); // Emit full data for popup
+          emit('marker-click', feature);
         });
+      },
+    });
 
-      markers.push(marker);
-    }
+    geoJsonLayer.addTo(leafletMap as L.Map);
+    geoJsonLayers.push(geoJsonLayer);
   });
 }
-function renderBusStopMarkers(data: typeof props.busStops) {
-  if (!data) {
-    return;
-  }
-  clearBusStopMarkers();
 
-  // data.forEach((feature) => {
-  //   const [minLng, minLat, maxLng, maxLat] = feature.bbox;
-
-  //   if (!Number.isNaN(minLat) && !Number.isNaN(minLng) && !Number.isNaN(maxLat) && !Number.isNaN(maxLng)) {
-  //     const rect = L.rectangle([[minLat, minLng], [maxLat, maxLng]], {
-  //       color: '#2196F3',
-  //       weight: 10,
-  //       fillOpacity: 0.1,
-  //     })
-  //       .addTo(leafletMap as L.Map);
-  //     busStopMarkers.push(rect);
-  //   }
-  // });
-  data.forEach((feature) => {
-    const [lat, lng] = feature.geometry.coordinates;
-    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-      const marker = L.circleMarker([lng, lat], {
-        radius: 2,
-        color: '#2196F3',
-        fillColor: '#2196F3',
-      })
-        .addTo(leafletMap as L.Map);
-      busStopMarkers.push(marker);
-    }
-  });
-}
-function renderLakesMarkers(data: typeof props.lakeData, selectedDate?: string) {
-  if (!data) {
-    return;
-  }
-  clearLakeMarkers();
-  const matchedDepth: number[] = [];
-
-  data.forEach((feature) => {
-    if (feature.properties.lakeDepth.length > 0 && selectedDate) {
-      const date = new Date(selectedDate);
-      const matched = feature.properties.lakeDepth.reduce<LakeDepth | undefined>((nearest, lakeDepth) => {
-        const [datePart] = lakeDepth.Zeit.split(' ');
-        const zeit = new Date(datePart);
-        if (zeit.getTime() <= date.getTime()) {
-          if (!nearest) {
-            return lakeDepth;
-          }
-          const [nearestDatePart] = lakeDepth.Zeit.split(' ');
-          const nearestZeit = new Date(nearestDatePart);
-          if (nearestZeit.getTime() > zeit.getTime()) {
-            return nearest;
-          }
-          return lakeDepth;
-        }
-        return nearest;
-      }, undefined);
-      if (matched) {
-        matchedDepth.push(Number.parseFloat(matched.wasserstand));
-      }
-    }
-  });
-  const minDepth = 0;
-  const maxDepth = Math.max(...matchedDepth, 0);
-
-  data.forEach((feature) => {
-    if (feature.properties.lakeDepth.length > 0 && selectedDate) {
-      const date = new Date(selectedDate);
-      const matched = feature.properties.lakeDepth.reduce<LakeDepth | undefined>((nearest, lakeDepth) => {
-        const [datePart] = lakeDepth.Zeit.split(' ');
-        const zeit = new Date(datePart);
-        if (zeit.getTime() <= date.getTime()) {
-          if (!nearest) {
-            return lakeDepth;
-          }
-          const [nearestDatePart] = lakeDepth.Zeit.split(' ');
-          const nearestZeit = new Date(nearestDatePart);
-          if (nearestZeit.getTime() > zeit.getTime()) {
-            return nearest;
-          }
-          return lakeDepth;
-        }
-        return nearest;
-      }, undefined);
-
-      const depth = matched ? Number.parseFloat(matched.wasserstand) : undefined;
-      const fillColor = getColorForDepth(depth, minDepth, maxDepth);
-      const depthLabel = `${t('waterLevel')}: ${depth !== undefined ? `${depth.toFixed(2)} cm` : t('notAvailable')}`;
-
-      const geom = feature.geometry;
-      if (geom.type === 'Point' || geom.type === 'LineString' || geom.type === 'MultiPoint' || geom.type === 'GeometryCollection') {
-        return;
-      }
-      const latlngs: L.LatLngExpression[][] = geom.type === 'MultiPolygon'
-        ? geom.coordinates.map(polygon => polygon[0].map(([x, y]) => [y, x]))
-        : [geom.coordinates[0].map(([x, y]) => [y, x])];
-
-      const polygon = L.polygon(latlngs, {
-        color: fillColor,
-        weight: 2,
-        fillOpacity: 0.5,
-      }).addTo(leafletMap as L.Map);
-
-      polygon.bindTooltip(L.tooltip({ content: `<b>${feature.properties.WK_NAME}</b><br />${depthLabel}` }));
-      lakeMarkers.push(polygon);
-    }
-  });
-
-  // --- Gradient Legend ---
-  clearLegend();
-  legendControl = new L.Control({ position: 'topleft' });
-  legendControl.onAdd = () => {
-    const div = L.DomUtil.create('div', 'info legend');
-    div.innerHTML += `
-      <span style="color:black">${t('waterLevelOfLake')}</span>
-      <div style="background: linear-gradient(to right, rgb(0,0,255), rgb(255,0,0)); height: 10px; width: 250px; margin-bottom: 4px;"></div>
-      <div style="display: flex; justify-content: space-between; font-size: 12px;">
-        <span style="color:black">0 cm</span>
-        <span style="color:black">${maxDepth.toFixed(2)} cm</span>
-      </div>
-    `;
-    return div;
-  };
-  legendControl.addTo(leafletMap as L.Map);
-}
-
-function clearBusStopMarkers() {
-  if (leafletMap) {
-    busStopMarkers.forEach(m => leafletMap!.removeLayer(m));
-    busStopMarkers.length = 0;
+function resetSelectedMarker() {
+  if (selectedMarker instanceof L.Path && originalMarkerStyleMap.has(selectedMarker)) {
+    selectedMarker.setStyle(originalMarkerStyleMap.get(selectedMarker)!);
+    selectedMarker = null;
   }
 }
-function clearLakeMarkers() {
-  if (leafletMap) {
-    lakeMarkers.forEach(m => leafletMap!.removeLayer(m));
-    lakeMarkers.length = 0;
-  }
-}
+
 function clearMarkers() {
   if (leafletMap) {
-    markers.forEach(marker => leafletMap!.removeLayer(marker));
-    markers.length = 0;
+    geoJsonLayers.forEach(layer => leafletMap!.removeLayer(layer));
+    geoJsonLayers.length = 0;
   }
 }
 
@@ -283,6 +262,10 @@ function clearLegend() {
   }
 }
 
+defineExpose({
+  resetSelectedMarker,
+});
+
 onMounted(() => {
   if (!map.value)
     return;
@@ -292,96 +275,13 @@ onMounted(() => {
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(leafletMap);
-
-  clearBusStopMarkers();
-  clearMarkers();
-  clearLegend();
-  if (props.waterBodies.length > 0 && props.featureDisplay) {
-    renderMarkers(props.waterBodies, props.featureDisplay);
-
-    const legendValues = [
-      ...new Set(
-        props.waterBodies.map((item) => {
-          switch (props.featureDisplay) {
-            case 'bathing':
-              return item.classification?.EINSTUFUNG_ODER_VORABBEWERTUNG;
-            default:
-              return undefined;
-          }
-        }).filter((v): v is string => v !== undefined),
-      ),
-    ];
-
-    legendControl = createLegend(legendValues, props.featureDisplay);
-    legendControl.addTo(leafletMap);
-  }
-  if (props.busStops && Array.isArray(props.busStops)) {
-    renderBusStopMarkers(props.busStops);
-  }
-  if (props.lakeData && Array.isArray(props.lakeData)) {
-    renderLakesMarkers(props.lakeData, props.selectedLakeDate);
-  }
 });
 
-watch(
-  [() => props.waterBodies, () => props.featureDisplay],
-  ([newData, newFeature]) => {
-    if (leafletMap && Array.isArray(newData) && newData.length > 0 && newFeature) {
-      clearBusStopMarkers();
-      clearMarkers();
-      clearLakeMarkers();
-      renderMarkers(newData, newFeature);
-
-      clearLegend();
-
-      const legendValues = [
-        ...new Set(
-          newData.map((item) => {
-            switch (newFeature) {
-              case 'bathing': return item.classification?.EINSTUFUNG_ODER_VORABBEWERTUNG;
-              default: return undefined;
-            }
-          }).filter((v): v is string => v !== undefined),
-        ),
-      ];
-
-      legendControl = createLegend(legendValues, newFeature);
-      legendControl.addTo(leafletMap);
-    }
-  },
-  { immediate: true },
-);
-watch(() => props.busStops, (newStops) => {
-  if (newStops && Array.isArray(newStops)) {
-    clearLegend();
+watch(() => props.fetchedData, (newData) => {
+  if (leafletMap && newData) {
     clearMarkers();
-    clearLakeMarkers();
-    renderBusStopMarkers(newStops);
-  }
-  else {
     clearLegend();
-    clearMarkers();
-    clearLakeMarkers();
-    clearBusStopMarkers();
+    renderMarkers(newData);
   }
-});
-watch(() => props.lakeData, (lakes) => {
-  if (lakes && Array.isArray(lakes)) {
-    clearLegend();
-    clearMarkers();
-    clearBusStopMarkers();
-    renderLakesMarkers(lakes, props.selectedLakeDate);
-  }
-  else {
-    clearLegend();
-    clearMarkers();
-    clearBusStopMarkers();
-    clearLakeMarkers();
-  }
-});
-watch(() => props.selectedLakeDate, (newDate) => {
-  if (props.lakeData) {
-    renderLakesMarkers(props.lakeData, newDate);
-  }
-});
+}, { immediate: true });
 </script>

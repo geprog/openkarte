@@ -1,0 +1,7 @@
+{
+  "options": [
+    { "name": "bathing", "title": "Badegewässer" },
+    { "name": "lakes", "title": "Pegelstände" },
+    { "name": "trees", "title": "Bäume Norderstedt" }
+  ]
+}

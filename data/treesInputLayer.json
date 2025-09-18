@@ -1,0 +1,44 @@
+{
+  "datasets": [
+    {
+      "host": "opendata.schleswig-holstein.de",
+      "id": "baumkataster",
+      "resource_id": "28fce3b8-8911-4196-9bbe-cddb2c38a048",
+      "title": "Baumkataster"
+    },
+    {
+      "host": "opendata.schleswig-holstein.de",
+      "id": "baume",
+      "resource_id": "3797989c-d969-4e14-87af-efa536ecf194",
+      "title": "Bäume"
+    }
+  ],
+  "mappings": [
+    { "source_db_id": "baumkataster", "source_db_field": "baumnr", "condition": "=", "target_db_id": "baume", "target_db_field": "BAUM_NR" }
+  ],
+  "options":
+    {
+      "label_option": "typ",
+      "legend_option": "default",
+      "type": "geo",
+      "value_group": "",
+      "display_option": "popup",
+      "popup_name": "STANDORT",
+      "popup_details": [
+        { "label": "BAUMART", "prop": "BAUMART" },
+        { "label": "PFLANZJAHR", "prop": "PFLANZJAHR" },
+        { "label": "TYP", "prop": "typ" },
+        { "label": "STAMM_DM", "prop": "STAMM_DM" },
+        { "label": "KRONE_DM", "prop": "KRONE_DM" },
+        { "label": "HOEHE", "prop": "HOEHE" },
+        { "label": "ENTW", "prop": "entw" },
+        { "label": "ABDECKUNG", "prop": "abdeckung" },
+        { "label": "ART_BOT", "prop": "art_bot" },
+        { "label": "GRENZ", "prop": "grenz" },
+        { "label": "LAGESTAT", "prop": "lagestat" },
+        { "label": "STAND", "prop": "stand" },
+        { "label": "ZUST", "prop": "zust" },
+        { "label": "SCHUTZ", "prop": "schutz" }
+      ]
+    }
+}
