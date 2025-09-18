@@ -15,7 +15,7 @@
     </div>
     <ul class="mt-2 space-y-1 text-sm text-white">
       <li v-for="(detail, index) in props.selectedItem.properties.options.pop_details" :key="index">
-        <strong>{{ t(detail.label) }}:</strong>
+        <strong>{{ detail.label }}:</strong>
         <template v-if="Array.isArray(detail.prop)">
           {{ detail.prop
             .map((opt: prop) => props.selectedItem.properties?.[opt.option] || 'N/A')
@@ -31,8 +31,6 @@
 </template>
 
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n';
-
 const props = defineProps<{
   selectedItem: Feature
 }>();
@@ -41,8 +39,6 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'markerReset'): void
 }>();
-
-const { t } = useI18n();
 
 function handleClose() {
   emit('close');
