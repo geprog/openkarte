@@ -79,7 +79,7 @@ const isSmallScreen = computed(() => {
   return window.innerWidth < 768;
 });
 const sidebarOpen = ref(false);
-const fetchedData = ref();
+const fetchedData = ref<GeoJSON.FeatureCollection | null>(null);
 const seriesData = ref<GeoJSON.FeatureCollection[]>([]);
 const colorMode = useColorMode();
 
@@ -136,7 +136,7 @@ function onMarkerReset() {
 
 watch(feature, async () => {
   loading.value = true;
-  fetchedData.value = [];
+  fetchedData.value = null;
   seriesData.value = [];
   hasSlider.value = false;
   if (feature.value) {

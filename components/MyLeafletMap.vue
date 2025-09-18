@@ -3,7 +3,6 @@
 </template>
 
 <script setup lang="ts">
-import type { FeatureCollection, GeoJsonProperties } from 'geojson';
 import L, { Control } from 'leaflet';
 import { onMounted, ref, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
@@ -11,7 +10,7 @@ import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 
 const props = defineProps<{
-  fetchedData?: FeatureCollection
+  fetchedData?: GeoJSON.FeatureCollection
 }>();
 const emit = defineEmits<{
   (e: 'marker-click', feature: GeoJSON.Feature): void
@@ -46,7 +45,7 @@ function findValueByKey(obj: unknown, key: string): string | number | undefined 
   return undefined;
 }
 
-function generateLabels(data: FeatureCollection): Map<string, string> {
+function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
   const colorMap = new Map<string, string>();
   const legend = new Control({ position: 'topleft' });
 
@@ -172,7 +171,7 @@ function generateColor(index: number, total: number): string {
   return `hsl(${hue}, 70%, 40%)`;
 }
 
-function renderMarkers(data: FeatureCollection | undefined) {
+function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
   if (!data)
     return;
 
