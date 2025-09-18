@@ -1,5 +1,5 @@
-import type { Package, Response } from './types/ckan';
-import type { InputJSON } from '~/server/prepareInput';
+import type { Package, Relationship, Response } from './types/ckan';
+import type { Dataset, InputJSON } from '~/server/prepareInput';
 import proj4 from 'proj4';
 import { fetchCsvFromUrl } from '~/server/utils/fetch-csv';
 import { fetchJsonFromUrl } from '~/server/utils/fetch-json';
@@ -18,17 +18,17 @@ const ALLOWED_HOSTS = [
 
 export interface FetchedData { id: string, date?: string, data: Record<string, string>[] | GeoJSON.FeatureCollection }
 
-export async function fetchSeriesData(s: any, dataset: any): Promise<FetchedData | undefined> {
+export async function fetchSeriesData(s: Relationship, dataset: Dataset): Promise<FetchedData | undefined> {
   try {
     const url = `https://${dataset.host}/api/action/package_show?id=${s.__extras.subject_package_id}`;
     const response = await fetch(url);
-    const res = await response.json();
+    const res: Response<Package> = await response.json();
     if (res.success) {
       const resource = res.result.resources.find(
-        (res: any) => res.format === 'CSV' || res.mimetype === 'text/csv',
+        res => res.format === 'CSV' || res.mimetype === 'text/csv',
       )?.url;
       if (resource) {
-        const publishedDate = res.result.extras.find((m: any) => m.key === 'issued')?.value || '';
+        const publishedDate = res.result.extras.find(m => m.key === 'issued')?.value || '';
         return { id: dataset.id, date: publishedDate, data: await fetchAndParseCsv(resource, dataset?.headers) };
       }
     }
@@ -60,13 +60,13 @@ export async function fetchData(datasets: InputJSON): Promise<FetchedData[]> {
 
           if (res.result.type === 'collection') {
             const series = await Promise.all(
-              res.result.relationships_as_object.map((s: any) => fetchSeriesData(s, dataset)),
+              res.result.relationships_as_object.map(s => fetchSeriesData(s, dataset)),
             );
             return series.filter(data => data !== undefined);
           }
 
           const resource = res.result.resources.find(
-            (r: any) => r.id === dataset.resource_id,
+            r => r.id === dataset.resource_id,
           );
           if (resource) {
             if (resource.url) {
@@ -171,7 +171,7 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
                   mergedRow.properties[key] = value;
                 }
                 else {
-                  (mergedRow as Record<string, any>)[key] = value;
+                  mergedRow[key] = value;
                 }
               });
             }
@@ -189,7 +189,7 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
         }
         return { ...feature, properties: { ...feature.properties, options: datasets.options } };
       });
-      const featureCollection: GeoJSON.FeatureCollection = {
+      const featureCollection: GeoJSON.FeatureCollection & { date?: string } = {
         type: 'FeatureCollection',
         features,
         ...(source.date && {
@@ -202,7 +202,7 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
     // Step 3: Normalize response wrapper
     return {
       type: 'FeatureCollectionGroup',
-      datasets: results.sort((a: any, b: any) => (a.date || '').localeCompare(b.date || '')),
+      datasets: results.sort((a, b) => (a.date || '').localeCompare(b.date || '')),
     };
   }
   catch (error) {
@@ -334,7 +334,7 @@ function reprojectGeoJSON<G extends GeoJSON.Geometry, P>(geojson: GeoJSON.Featur
   };
 }
 
-function csvToGeoJSONFromRow(row: Record<string, any>, latKey = 'lat', lonKey = 'lon'): GeoJSON.Feature | null {
+function csvToGeoJSONFromRow(row: Record<string, string>, latKey = 'lat', lonKey = 'lon'): GeoJSON.Feature | null {
   const latitude = Number.parseFloat(row[latKey]);
   const longitude = Number.parseFloat(row[lonKey]);
 

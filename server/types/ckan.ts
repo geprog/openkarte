@@ -1,4 +1,4 @@
-interface Relationship {
+export interface Relationship {
   id: string
   type: 'child_of'
   __extras: {
@@ -7,11 +7,12 @@ interface Relationship {
   }
 }
 
-interface Resource {
+export interface Resource {
   id: string
   package_id: string
   name: string
   description: string
+  mimetype: string
   format: 'CSV' | 'GeoJSON' | 'JSON' | 'XML' | 'XLS' | 'XLSX' | 'PDF' | 'HTML' | 'TXT' | 'ZIP'
   url: string
 }
@@ -25,6 +26,7 @@ export interface Package {
   relationships_as_object: Relationship[]
   relationships_as_subject: Relationship[]
   resources: Resource[]
+  extras: { key: string, value: string }[]
 }
 
 export type Response<T> = {
