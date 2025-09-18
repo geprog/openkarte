@@ -3,14 +3,18 @@ const yearColors = [
   '#10B981', // green
   '#8B5CF6', // purple
   '#F59E0B', // amber (still warm, but not red)
-  '#0D9488', // teal (replaces red)
+  '#0D9488', // teal (replaces red) 
 ];
 
-export function getDatesGroups(fetchedData: FeatureCollection[]) {
+function isFeatureCollectionWithDate(item: GeoJSON.FeatureCollection): item is GeoJSON.FeatureCollection & { date: string } {
+  return (item as GeoJSON.FeatureCollection & { date: string }).date !== undefined;
+}
+
+export function getDatesGroups(fetchedData: GeoJSON.FeatureCollection[]) {
   const groupedDates = computed(() => {
     const yearGroups = new Map<string, string[]>();
     fetchedData
-      .filter((item): item is FeatureCollection & { date: string } => !!item.date)
+      .filter(isFeatureCollectionWithDate)
       .forEach((item) => {
         const year = item.date.slice(0, 4);
         if (!yearGroups.has(year)) {
@@ -38,8 +42,8 @@ export function getDatesGroups(fetchedData: FeatureCollection[]) {
   return groupedDates.value;
 }
 
-export function getDateOptions(fetchedData: FeatureCollection[]): string[] {
+export function getDateOptions(fetchedData: GeoJSON.FeatureCollection[]): string[] {
   return fetchedData
-    .map(o => o.date)
-    .filter((d): d is string => d !== undefined);
+    .filter(isFeatureCollectionWithDate)
+    .map(o => o.date);
 }

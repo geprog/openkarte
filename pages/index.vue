@@ -100,7 +100,7 @@ const feature = computed<string | null>(() => {
 });
 
 const selectedIndex = ref(0);
-const selectedItem = ref<Feature | null>(null);
+const selectedItem = ref<GeoJSON.Feature | null>(null);
 const selectedDate = ref();
 let dateOptions: DateOptions[];
 let dateGroup: DateGroup[];
@@ -109,13 +109,14 @@ const hasSlider = ref(false);
 
 const chartData = computed(() => {
   const data = selectedItem.value;
-  if (!data || !data.properties.match?.[0]) {
+  if (!data || !data.properties?.match?.[0]) {
     return [];
   }
-  const series = data.properties.match[0];
+  const properties = data.properties;
+  const series = properties.match[0];
   return series.map((entry: DataEntry) => ({
-    date: entry[data.properties.options.x_axis_data],
-    value: entry[data.properties.options.y_axis_data],
+    date: entry[properties.options.x_axis_data],
+    value: entry[properties.options.y_axis_data],
   }));
 });
 

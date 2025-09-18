@@ -14,7 +14,7 @@ const props = defineProps<{
   fetchedData?: FeatureCollection
 }>();
 const emit = defineEmits<{
-  (e: 'marker-click', feature: Feature): void
+  (e: 'marker-click', feature: GeoJSON.Feature): void
 }>();
 let selectedMarker: L.Layer | null = null;
 const originalMarkerStyleMap = new Map<L.Layer, L.PathOptions>();
@@ -143,11 +143,13 @@ function generateLabels(data: FeatureCollection): Map<string, string> {
       return div;
     };
 
-    data.features.forEach((f) => {
-      const feature = f as Feature;
+    data.features.forEach((feature) => {
       const key = labelKey ?? 'default';
       const val = +(findValueByKey(feature, key) ?? 0);
-      feature.__binLabel = getBinLabel(val);
+      if (!feature.properties) {
+        feature.properties = {};
+    }
+      feature.properties.__binLabel = getBinLabel(val);
     });
   }
 
@@ -180,19 +182,18 @@ function renderMarkers(data: FeatureCollection | undefined) {
   const colorMap = generateLabels(data);
   originalMarkerStyleMap.clear();
 
-  data.features.forEach((feature: GeoJSON.Feature<Geometry, GeoJsonProperties>) => {
-    const f = feature as Feature;
-    const legendOption = f.properties.options?.legend_option;
-    const labelOption = f.properties.options?.label_option;
-    let key = labelOption ? f.properties[labelOption] : undefined;
+  data.features.forEach((feature) => {
+    const legendOption = feature.properties?.options?.legend_option;
+    const labelOption = feature.properties?.options?.label_option;
+    let key = labelOption ? feature.properties?.[labelOption] : undefined;
 
     if (legendOption === 'colorVarient') {
-      key = f.__binLabel;
+      key = feature.properties?.__binLabel;
     }
 
     const color = colorMap.get(key) ?? '#999';
 
-    const geoJsonLayer = L.geoJSON(feature as GeoJSON.Feature<Geometry, Feature['properties']>, {
+    const geoJsonLayer = L.geoJSON(feature, {
       style: () => ({
         color,
         weight: 2,
@@ -231,7 +232,7 @@ function renderMarkers(data: FeatureCollection | undefined) {
 
           selectedMarker = layer;
           // eslint-disable-next-line vue/custom-event-name-casing
-          emit('marker-click', feature as Feature);
+          emit('marker-click', feature);
         });
       },
     });
