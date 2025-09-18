@@ -2,12 +2,12 @@
   <div
     class="absolute bottom-30 left-1/2 transform -translate-x-1/2 bg-white dark:bg-slate-900 text-black dark:text-white p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-xl"
   >
-    <div class="flex justify-between items-center">
-      <h2 class="text-lg font-bold text-white item-center">
+    <div class="relative">
+      <h2 class="text-lg font-bold text-white text-center">
         {{ props.selectedItem.properties[props.selectedItem.properties.options.popup_name] }}
       </h2>
       <button
-        class="absolute top-2 right-2 text-white text-xl hover:text-red-400"
+        class="absolute top-0 right-0 text-white text-xl hover:text-red-400"
         @click="handleClose"
       >
         &times;

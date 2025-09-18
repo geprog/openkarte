@@ -1,5 +1,5 @@
 import type { Package, Response } from './types/ckan';
-import type { Dataset, InputJSON } from '~/server/prepareInput';
+import type { InputJSON } from '~/server/prepareInput';
 import proj4 from 'proj4';
 import { fetchCsvFromUrl } from '~/server/utils/fetch-csv';
 import { fetchJsonFromUrl } from '~/server/utils/fetch-json';
@@ -65,11 +65,9 @@ export async function fetchData(datasets: InputJSON): Promise<FetchedData[]> {
             return series.filter(data => data !== undefined);
           }
 
-<<<<<<< Updated upstream
           const resource = res.result.resources.find(
             (r: any) => r.id === dataset.resource_id,
           );
-
           if (resource) {
             if (resource.url) {
               resource.url = resource.url.replace(/^http:/, 'https:');
@@ -78,21 +76,9 @@ export async function fetchData(datasets: InputJSON): Promise<FetchedData[]> {
               const data: FetchedData = { id: dataset.id, data: await fetchAndParseCsv(resource.url, dataset?.headers) };
               return [data];
             }
-            else if (['JSON', 'SHP'].includes(resource.format)) {
+            else if (['JSON', 'GeoJSON', 'SHP'].includes(resource.format)) {
               const data: FetchedData = { id: dataset.id, data: await fetchAndParseJson(resource.url) };
               return [data];
-=======
-            if (resource) {
-              if (resource.url) {
-                resource.url = resource.url.replace(/^http:/, 'https:');
-              }
-              if (resource.format === 'CSV') {
-                return { id: dataset.id, data: await fetchAndParseCsv(resource.url, dataset?.headers) };
-              }
-              else if (['JSON', 'GeoJSON', 'SHP'].includes(resource.format)) {
-                return { id: dataset.id, data: await fetchAndParseJson(resource.url) };
-              }
->>>>>>> Stashed changes
             }
           }
           return null;
@@ -120,14 +106,9 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
     const baseDatasetId = datasets.mappings[0].source_db_id;
     let mappingDatasets: FetchedData[] = [];
 
-<<<<<<< Updated upstream
     if (datasets.options.type === 'series') {
       // case: series → multiple snapshots
       mappingDatasets = data.filter(d => d.id === baseDatasetId);
-=======
-    if (Array.isArray(data[0])) {
-      mappingDatasets = data[0].filter((d: any) => d.id === baseDatasetId);
->>>>>>> Stashed changes
     }
     else {
       const baseDataset = (data as FetchedData[]).find(d => d.id === baseDatasetId);
@@ -135,14 +116,8 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
         throw new Error('Base dataset not found');
       mappingDatasets = [baseDataset];
     }
-<<<<<<< Updated upstream
-    // return mappingDatasets;
     const results = mappingDatasets.map((source) => {
       const baseRows = Array.isArray(source.data) ? source.data : source.data.features;
-=======
-    const results = mappingDatasets.map((source: any) => {
-      const baseRows = source.data?.features ?? source.data ?? [];
->>>>>>> Stashed changes
 
       const merged = baseRows.map((baseRow) => {
         const mergedRow = { ...baseRow };
@@ -151,43 +126,17 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
           const targetDataset = data.find(d => d.id === m.target_db_id);
           if (!targetDataset)
             return;
-<<<<<<< Updated upstream
-
           const targetRows = Array.isArray(targetDataset.data) ? targetDataset.data : targetDataset.data.features;
 
-          if (datasets.options.type === 'geo') {
-            if (!isGeoJSON(mergedRow)) {
-              throw new Error('Expected GeoJSON Feature');
-            }
-            if (!mergedRow.properties) {
-              mergedRow.properties = {};
-            }
-            if (!mergedRow.properties.match) {
-              mergedRow.properties.match = [];
-            }
-            if (!mergedRow?.properties.average) {
-              mergedRow.properties.average = 0;
-            }
-            const baseValue = getValue(baseRow.properties, m.source_db_field)?.toString().toLowerCase();
-            if (baseValue && baseValue.includes(m.target_db_field.toLowerCase())) {
-              const values = targetRows.map((d) => {
-                return isGeoJSON(d) ? (d.properties || {})[datasets.options.value_group] : d[datasets.options.value_group];
-              });
-              mergedRow.properties.match.push(targetDataset.data);
-              mergedRow.properties.average = calculateMean(values);
-            }
-          }
-          else {
-            if (isGeoJSON(mergedRow)) {
-              throw new Error('Expected CSV Row');
-            }
-            const match = targetRows.find((row) => {
-              const sourceValue = getValue(baseRow, m.source_db_field);
-=======
-          const targetRows = targetDataset.data?.features ?? targetDataset.data ?? [];
           if (datasets.options.value_group) {
             if (datasets.options.type === 'geo') {
-              if (!mergedRow?.properties.match) {
+              if (!isGeoJSON(mergedRow)) {
+                throw new Error('Expected GeoJSON Feature');
+              }
+              if (!mergedRow.properties) {
+                mergedRow.properties = {};
+              }
+              if (!mergedRow.properties.match) {
                 mergedRow.properties.match = [];
               }
               if (!mergedRow?.properties.average) {
@@ -195,38 +144,34 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
               }
               const baseValue = getValue(baseRow.properties, m.source_db_field)?.toString().toLowerCase();
               if (baseValue && baseValue.includes(m.target_db_field.toLowerCase())) {
-                const values = targetDataset.data.map((d: any) => {
-                  return d[datasets.options.value_group];
+                const values = targetRows.map((d) => {
+                  return isGeoJSON(d) ? (d.properties || {})[datasets.options.value_group] : d[datasets.options.value_group];
                 });
                 mergedRow.properties.match.push(targetDataset.data);
                 mergedRow.properties.average = calculateMean(values);
               }
-              mergedRow.properties.options = datasets.options;
             }
           }
           else {
-            const match = targetRows.find((row: any) => {
+            const match = targetRows.find((row) => {
               let sourceValue = 0;
-              if (!baseRow?.properties) {
-                sourceValue = getValue(baseRow, m.source_db_field);
-              }
-              else {
+              if (isGeoJSON(baseRow)) {
                 sourceValue = getValue(baseRow.properties, m.source_db_field);
               }
->>>>>>> Stashed changes
+              else {
+                sourceValue = getValue(baseRow, m.source_db_field);
+              }
               const targetValue = getValue(row, m.target_db_field);
-              // console.log(sourceValue, targetValue);
               return sourceValue === targetValue;
             });
-            if (match) {
+            if (match && mergedRow) {
               Object.entries(match).forEach(([key, value]) => {
-                if (!mergedRow?.properties) {
-                  mergedRow[key] = value;
-                  mergedRow.options = datasets.options;
+                if (isGeoJSON(mergedRow)) {
+                  mergedRow.properties = mergedRow.properties || {};
+                  mergedRow.properties[key] = value;
                 }
                 else {
-                  mergedRow.properties[key] = value;
-                  mergedRow.properties.options = datasets.options;
+                  (mergedRow as Record<string, any>)[key] = value;
                 }
               });
             }
@@ -235,31 +180,10 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
 
         return mergedRow;
       });
-<<<<<<< Updated upstream
-      // if (datasets.options.type === 'series') {
-      //   if (!merged.date) {
-      //     merged.date = [];
-      //   }
-      //   merged.date = source.date;
-      //   const geojson = csvToGeoJSONFromRows(merged, 'GEOGR_BREITE', 'GEOGR_LAENGE');
-      //   geojson.date = new Date(source.date).toISOString().split('T')[0];
-      //   return geojson;
-      // }
-=======
-      if (datasets.options.type === 'series') {
-        if (!merged.date) {
-          merged.date = [];
-        }
-        merged.date = source.date;
-        const geojson = csvToGeoJSONFromRows(merged, datasets.options.coordinate_field_x, datasets.options.coordinate_field_y);
-        geojson.date = new Date(source.date).toISOString().split('T')[0];
-        return geojson;
-      }
->>>>>>> Stashed changes
 
       // Always return as FeatureCollection
       const features = merged.map<GeoJSON.Feature>((row) => {
-        const feature = isGeoJSON(row) ? row : csvToGeoJSONFromRow(row, 'GEOGR_BREITE', 'GEOGR_LAENGE');
+        const feature = isGeoJSON(row) ? row : csvToGeoJSONFromRow(row, datasets.options.coordinate_field_x, datasets.options.coordinate_field_y);
         if (!feature) {
           throw new Error('Invalid row, missing or invalid coordinates');
         }
@@ -303,8 +227,15 @@ function calculateMean(values: number[]): number {
 async function fetchAndParseCsv(csvUrl: string, headers?: string[]): Promise<Record<string, string>[]> {
   try {
     const response = await fetchCsvFromUrl(csvUrl);
-    const decoder = new TextDecoder('iso-8859-1');
-    const csvText = decoder.decode(response);
+    const decoder = new TextDecoder('utf-8');
+    let csvText = decoder.decode(response);
+    if (csvText.includes('Ã') || csvText.includes('�')) {
+      csvText = new TextDecoder('iso-8859-1').decode(response);
+    }
+
+    // Remove BOM if present
+    if (csvText.charCodeAt(0) === 0xFEFF)
+      csvText = csvText.slice(1);
 
     const rows = csvText.trim().split('\n');
     if (headers) {
