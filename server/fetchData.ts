@@ -65,6 +65,7 @@ export async function fetchData(datasets: InputJSON): Promise<FetchedData[]> {
             return series.filter(data => data !== undefined);
           }
 
+<<<<<<< Updated upstream
           const resource = res.result.resources.find(
             (r: any) => r.id === dataset.resource_id,
           );
@@ -80,6 +81,18 @@ export async function fetchData(datasets: InputJSON): Promise<FetchedData[]> {
             else if (['JSON', 'SHP'].includes(resource.format)) {
               const data: FetchedData = { id: dataset.id, data: await fetchAndParseJson(resource.url) };
               return [data];
+=======
+            if (resource) {
+              if (resource.url) {
+                resource.url = resource.url.replace(/^http:/, 'https:');
+              }
+              if (resource.format === 'CSV') {
+                return { id: dataset.id, data: await fetchAndParseCsv(resource.url, dataset?.headers) };
+              }
+              else if (['JSON', 'GeoJSON', 'SHP'].includes(resource.format)) {
+                return { id: dataset.id, data: await fetchAndParseJson(resource.url) };
+              }
+>>>>>>> Stashed changes
             }
           }
           return null;
@@ -107,9 +120,14 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
     const baseDatasetId = datasets.mappings[0].source_db_id;
     let mappingDatasets: FetchedData[] = [];
 
+<<<<<<< Updated upstream
     if (datasets.options.type === 'series') {
       // case: series → multiple snapshots
       mappingDatasets = data.filter(d => d.id === baseDatasetId);
+=======
+    if (Array.isArray(data[0])) {
+      mappingDatasets = data[0].filter((d: any) => d.id === baseDatasetId);
+>>>>>>> Stashed changes
     }
     else {
       const baseDataset = (data as FetchedData[]).find(d => d.id === baseDatasetId);
@@ -117,9 +135,14 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
         throw new Error('Base dataset not found');
       mappingDatasets = [baseDataset];
     }
+<<<<<<< Updated upstream
     // return mappingDatasets;
     const results = mappingDatasets.map((source) => {
       const baseRows = Array.isArray(source.data) ? source.data : source.data.features;
+=======
+    const results = mappingDatasets.map((source: any) => {
+      const baseRows = source.data?.features ?? source.data ?? [];
+>>>>>>> Stashed changes
 
       const merged = baseRows.map((baseRow) => {
         const mergedRow = { ...baseRow };
@@ -128,6 +151,7 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
           const targetDataset = data.find(d => d.id === m.target_db_id);
           if (!targetDataset)
             return;
+<<<<<<< Updated upstream
 
           const targetRows = Array.isArray(targetDataset.data) ? targetDataset.data : targetDataset.data.features;
 
@@ -159,12 +183,51 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
             }
             const match = targetRows.find((row) => {
               const sourceValue = getValue(baseRow, m.source_db_field);
+=======
+          const targetRows = targetDataset.data?.features ?? targetDataset.data ?? [];
+          if (datasets.options.value_group) {
+            if (datasets.options.type === 'geo') {
+              if (!mergedRow?.properties.match) {
+                mergedRow.properties.match = [];
+              }
+              if (!mergedRow?.properties.average) {
+                mergedRow.properties.average = 0;
+              }
+              const baseValue = getValue(baseRow.properties, m.source_db_field)?.toString().toLowerCase();
+              if (baseValue && baseValue.includes(m.target_db_field.toLowerCase())) {
+                const values = targetDataset.data.map((d: any) => {
+                  return d[datasets.options.value_group];
+                });
+                mergedRow.properties.match.push(targetDataset.data);
+                mergedRow.properties.average = calculateMean(values);
+              }
+              mergedRow.properties.options = datasets.options;
+            }
+          }
+          else {
+            const match = targetRows.find((row: any) => {
+              let sourceValue = 0;
+              if (!baseRow?.properties) {
+                sourceValue = getValue(baseRow, m.source_db_field);
+              }
+              else {
+                sourceValue = getValue(baseRow.properties, m.source_db_field);
+              }
+>>>>>>> Stashed changes
               const targetValue = getValue(row, m.target_db_field);
+              // console.log(sourceValue, targetValue);
               return sourceValue === targetValue;
             });
             if (match) {
               Object.entries(match).forEach(([key, value]) => {
-                mergedRow[key] = value;
+                if (!mergedRow?.properties) {
+                  mergedRow[key] = value;
+                  mergedRow.options = datasets.options;
+                }
+                else {
+                  mergedRow.properties[key] = value;
+                  mergedRow.properties.options = datasets.options;
+                }
               });
             }
           }
@@ -172,6 +235,7 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
 
         return mergedRow;
       });
+<<<<<<< Updated upstream
       // if (datasets.options.type === 'series') {
       //   if (!merged.date) {
       //     merged.date = [];
@@ -181,6 +245,17 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
       //   geojson.date = new Date(source.date).toISOString().split('T')[0];
       //   return geojson;
       // }
+=======
+      if (datasets.options.type === 'series') {
+        if (!merged.date) {
+          merged.date = [];
+        }
+        merged.date = source.date;
+        const geojson = csvToGeoJSONFromRows(merged, datasets.options.coordinate_field_x, datasets.options.coordinate_field_y);
+        geojson.date = new Date(source.date).toISOString().split('T')[0];
+        return geojson;
+      }
+>>>>>>> Stashed changes
 
       // Always return as FeatureCollection
       const features = merged.map<GeoJSON.Feature>((row) => {
@@ -222,7 +297,6 @@ function calculateMean(values: number[]): number {
     return 0;
   }
   const sum = numbers.reduce((acc, val) => acc + val, 0);
-  // console.warn('sum', sum);
   return sum / numbers.length;
 }
 
@@ -273,9 +347,30 @@ async function fetchAndParseJson<G extends GeoJSON.Geometry, P>(geoJsonUrl: stri
     return data as GeoJSON.FeatureCollection<G, P>;
   }
   const response = await fetchJsonFromUrl(geoJsonUrl);
-  const data = JSON.parse(new TextDecoder().decode(response));
-  const reprojectedCoordinatesData = reprojectGeoJSON<G, P>(data);
-  return reprojectedCoordinatesData;
+  // ✅ normalize to JS object
+  let data: any;
+  if (response instanceof ArrayBuffer || ArrayBuffer.isView(response)) {
+    data = JSON.parse(new TextDecoder().decode(response as ArrayBufferView));
+  }
+  else {
+    data = response; // already JSON object
+  }
+
+  let geojson: any;
+
+  if (data.type === 'FeatureCollection' || data.type === 'Feature') {
+    geojson = data;
+  }
+  else if (data.features || data.geojson || data.data || data.result) {
+    geojson = data.features
+      ? data
+      : data.geojson || data.data || data.result;
+  }
+  else {
+    throw new Error('Could not find valid GeoJSON in response');
+  }
+
+  return reprojectGeoJSON<G, P>(geojson);
 }
 
 function reprojectGeoJSON<G extends GeoJSON.Geometry, P>(geojson: GeoJSON.FeatureCollection<G, P>): GeoJSON.FeatureCollection<G, P> {

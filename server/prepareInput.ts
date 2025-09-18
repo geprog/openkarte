@@ -22,6 +22,8 @@ export interface Options {
   legend_option: string
   type: string
   value_group: string
+  coordinate_field_x?: string
+  coordinate_field_y?: string
 }
 
 export interface InputJSON {

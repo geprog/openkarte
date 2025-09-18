@@ -118,6 +118,8 @@
         { "label": "SAISONBEGINN", "prop": [{ "option": "SAISONBEGINN" }, { "option": "SAISONENDE" }, { "option": "GESCHLOSSEN" }] },
         { "label": "INFRASTRUKTUR", "prop": "INFRASTRUKTUR" }
       ],
-      "slider": "yes"
+      "slider": "yes",
+      "coordinate_field_x": "GEOGR_BREITE",
+      "coordinate_field_y": "GEOGR_LAENGE"
     }
 }

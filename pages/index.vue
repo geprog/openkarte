@@ -174,7 +174,8 @@ watch(feature, async () => {
 
     if (status.value !== 'pending' && response.value) {
       const resp = response.value as NormalizedResponse;
-      hasSlider.value = (resp.datasets as FeatureCollection[]).flat().some(item => item.features[0].properties.options?.slider?.toLowerCase() === 'yes');
+      console.log('resp', resp);
+      hasSlider.value = (resp.datasets as FeatureCollection[]).flat().some(item => item.features[0]?.properties.options?.slider?.toLowerCase() === 'yes');
 
       if (hasSlider.value) {
         fetchedData.value = [];
