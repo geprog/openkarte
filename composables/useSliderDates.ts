@@ -3,7 +3,7 @@ const yearColors = [
   '#10B981', // green
   '#8B5CF6', // purple
   '#F59E0B', // amber (still warm, but not red)
-  '#0D9488', // teal (replaces red) 
+  '#0D9488', // teal (replaces red)
 ];
 
 function isFeatureCollectionWithDate(item: GeoJSON.FeatureCollection): item is GeoJSON.FeatureCollection & { date: string } {

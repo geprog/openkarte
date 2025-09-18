@@ -147,7 +147,7 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
       const val = +(findValueByKey(feature, key) ?? 0);
       if (!feature.properties) {
         feature.properties = {};
-    }
+      }
       feature.properties.__binLabel = getBinLabel(val);
     });
   }

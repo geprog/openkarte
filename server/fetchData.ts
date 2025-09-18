@@ -202,7 +202,7 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
       return featureCollection;
     });
     // Step 3: Normalize response wrapper
-    return results.sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+    return results.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   }
   catch (error) {
     console.error('Error fetching Mappings', error);

@@ -1,6 +1,6 @@
+import type { Options } from '~/composables/dataTypes';
 import fs from 'node:fs';
 import path from 'node:path';
-import { type Options } from '~/composables/dataTypes';
 import { fetchData, fetchMappings } from '~/server/fetchData';
 
 export interface Dataset {

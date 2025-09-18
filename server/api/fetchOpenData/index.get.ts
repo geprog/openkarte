@@ -1,4 +1,4 @@
-import { type FetchedDataArray } from '~/server/fetchData';
+import type { FetchedDataArray } from '~/server/fetchData';
 import { getData } from '~/server/prepareInput';
 
 const cache: Record<string, {
@@ -28,7 +28,8 @@ export default defineEventHandler(async (event) => {
       timestamp: Date.now(),
     };
     return data;
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Error fetching data for feature:', feature, error);
     throw createError({
       statusCode: 500,

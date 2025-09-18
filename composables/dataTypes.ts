@@ -27,5 +27,5 @@ export interface Options {
   coordinate_field_y?: string
   display_option: 'popup' | 'line chart'
   popup_name?: string
-  popup_details?: { label: string; prop: string | string[] }[]
+  popup_details?: { label: string, prop: string | string[] }[]
 }

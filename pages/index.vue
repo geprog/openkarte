@@ -2,21 +2,27 @@
   <div class="h-screen w-screen flex flex-col">
     <header class="bg-blue shadow flex items-center justify-between">
       <div class="flex items-center space-x-2">
-        <button class="p-2 bg-blue rounded hover:bg-blue-600 flex items-center space-x-2"
-          @click="sidebarOpen = !sidebarOpen">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-            stroke-width="2">
+        <button
+          class="p-2 bg-blue rounded hover:bg-blue-600 flex items-center space-x-2"
+          @click="sidebarOpen = !sidebarOpen"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            stroke-width="2"
+          >
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
         <span class="text-lg font-semibold">{{ t('openMap') }}</span>
       </div>
       <div v-if="feature" class="text-lg font-semibold">
-        {{featureOptions.find((opt: MapDisplayOptions) => opt.name === feature)?.title}}
+        {{ featureOptions.find((opt: MapDisplayOptions) => opt.name === feature)?.title }}
       </div>
       <div class="flex gap-4 px-4">
-        <UButton :icon="isDark ? 'i-lucide-moon' : 'i-lucide-sun'" color="neutral" variant="ghost"
-          @click="isDark = !isDark" />
+        <UButton
+          :icon="isDark ? 'i-lucide-moon' : 'i-lucide-sun'" color="neutral" variant="ghost"
+          @click="isDark = !isDark"
+        />
 
         <USelect v-model="locale" :items="localeItems" :icon="selectedLocaleIcon" :ui="{ placeholder: 'hidden' }" />
       </div>
@@ -28,29 +34,41 @@
           <h3>{{ t('mapDisplayOption') }}</h3>
         </div>
         <ul class="space-y-2">
-          <li v-for="opt in featureOptions" :key="opt.name" class="cursor-pointer hover:text-blue-200"
-            :class="{ 'font-bold underline': feature === opt.name }" @click="setFeature(opt.name)">
+          <li
+            v-for="opt in featureOptions" :key="opt.name" class="cursor-pointer hover:text-blue-200"
+            :class="{ 'font-bold underline': feature === opt.name }" @click="setFeature(opt.name)"
+          >
             {{ opt.title }}
           </li>
         </ul>
       </aside>
 
       <main class="flex-1 relative">
-        <div v-if="loading"
-          class="absolute inset-0 z-[9999] flex items-center justify-center bg-white/50 backdrop-blur-sm cursor-not-allowed">
+        <div
+          v-if="loading"
+          class="absolute inset-0 z-[9999] flex items-center justify-center bg-white/50 backdrop-blur-sm cursor-not-allowed"
+        >
           <LoadingSpinner />
         </div>
 
         <MyLeafletMap ref="leafletMapRef" :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
-        <Slider v-if="hasSlider && dateOptions" :date-group="dateGroup" :date-options="dateOptions"
+        <Slider
+          v-if="hasSlider && dateOptions" :date-group="dateGroup" :date-options="dateOptions"
           :selected-index="selectedIndex" :selected-date="selectedDate" :is-small-screen="isSmallScreen"
-          @update:selected-index="selectedIndex = $event" />
-        <PopupInfo v-if="selectedItem?.properties?.options?.display_option === 'popup'" :selected-item="selectedItem"
-          @close="selectedItem = null" @marker-reset="onMarkerReset" />
-        <div v-if="selectedItem?.properties?.options?.display_option === 'line chart'"
-          class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-2xl">
-          <LineChart v-if="selectedItem" :chart-data="chartData" :selected-item="selectedItem" class="mt-4"
-            @close="selectedItem = null" />
+          @update:selected-index="selectedIndex = $event"
+        />
+        <PopupInfo
+          v-if="selectedItem?.properties?.options?.display_option === 'popup'" :selected-item="selectedItem"
+          @close="selectedItem = null" @marker-reset="onMarkerReset"
+        />
+        <div
+          v-if="selectedItem?.properties?.options?.display_option === 'line chart'"
+          class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-2xl"
+        >
+          <LineChart
+            v-if="selectedItem" :chart-data="chartData" :selected-item="selectedItem" class="mt-4"
+            @close="selectedItem = null"
+          />
         </div>
       </main>
     </div>
@@ -121,7 +139,7 @@ const chartData = computed(() => {
 });
 
 function setFeature(f: string) {
-  router.push({ path: '', query: { feature: f } })
+  router.push({ path: '', query: { feature: f } });
 }
 
 watch(selectedIndex, (newIndex) => {
@@ -146,7 +164,7 @@ watch(feature, async () => {
         `/api/fetchOpenData?feature=${encodeURIComponent(feature.value)}`,
       );
 
-      const featureCollections = (response as GeoJSON.FeatureCollection[]);
+      const featureCollections = response as GeoJSON.FeatureCollection[];
       hasSlider.value = featureCollections.flat().some(item => item.features[0].properties?.options?.slider?.toLowerCase() === 'yes');
 
       if (hasSlider.value) {
@@ -159,7 +177,8 @@ watch(feature, async () => {
       else {
         fetchedData.value = featureCollections[0];
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error fetching data:', error);
     }
     loading.value = false;
