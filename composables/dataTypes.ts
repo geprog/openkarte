@@ -13,10 +13,6 @@ export interface DataEntry {
   [key: string]: string | number
 }
 
-export interface prop {
-  option: string
-}
-
 export interface MapDisplayOptions {
   name: string
   title: string
