@@ -11,7 +11,7 @@ import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 
 const props = defineProps<{
-  fetchedData: FeatureCollection
+  fetchedData?: FeatureCollection
 }>();
 const emit = defineEmits<{
   (e: 'marker-click', feature: Feature): void
