@@ -18,6 +18,8 @@ const ALLOWED_HOSTS = [
 
 export interface FetchedData { id: string, date?: string, data: Record<string, string>[] | GeoJSON.FeatureCollection }
 
+export type FetchedDataArray = (GeoJSON.FeatureCollection & { date?: string })[];
+
 export async function fetchSeriesData(s: Relationship, dataset: Dataset): Promise<FetchedData | undefined> {
   try {
     const url = `https://${dataset.host}/api/action/package_show?id=${s.__extras.subject_package_id}`;
@@ -101,7 +103,7 @@ function isGeoJSON(data: Record<string, string> | GeoJSON.Feature): data is GeoJ
   return (data as GeoJSON.Feature).type === 'Feature';
 }
 
-export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
+export async function fetchMappings(data: FetchedData[], datasets: InputJSON): Promise<FetchedDataArray> {
   try {
     const baseDatasetId = datasets.mappings[0].source_db_id;
     let mappingDatasets: FetchedData[] = [];
@@ -200,10 +202,7 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON) {
       return featureCollection;
     });
     // Step 3: Normalize response wrapper
-    return {
-      type: 'FeatureCollectionGroup',
-      datasets: results.sort((a, b) => (a.date || '').localeCompare(b.date || '')),
-    };
+    return results.sort((a, b) => (a.date || '').localeCompare(b.date || ''))
   }
   catch (error) {
     console.error('Error fetching Mappings', error);

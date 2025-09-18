@@ -1,4 +1,12 @@
+import { FetchedDataArray } from '~/server/fetchData';
 import { getData } from '~/server/prepareInput';
+
+const cache: Record<string, {
+  data: FetchedDataArray
+  timestamp: number
+}> = {};
+
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
 
 export default defineEventHandler(async (event) => {
   const feature = getQuery(event).feature as string;
@@ -8,5 +16,23 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Missing feature',
     });
   }
-  return await getData(feature);
+  console.info('Fetching data for feature:', feature);
+  try {
+    if (cache[feature] && (Date.now() - cache[feature].timestamp < CACHE_DURATION)) {
+      console.info('Returning cached data for feature:', feature);
+      return cache[feature].data;
+    }
+    const data = await getData(feature);
+    cache[feature] = {
+      data,
+      timestamp: Date.now(),
+    };
+    return data;
+  } catch (error) {
+    console.error('Error fetching data for feature:', feature, error);
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Error fetching data',
+    });
+  }
 });
