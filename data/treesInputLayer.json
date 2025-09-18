@@ -39,7 +39,6 @@
         { "label": "STAND", "prop": "stand" },
         { "label": "ZUST", "prop": "zust" },
         { "label": "SCHUTZ", "prop": "schutz" }
-      ],
-      "slider": "no"
+      ]
     }
 }

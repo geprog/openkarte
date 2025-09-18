@@ -53,7 +53,7 @@
 
         <MyLeafletMap ref="leafletMapRef" :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
         <Slider
-          v-if="hasSlider && dateOptions" :date-group="dateGroup" :date-options="dateOptions"
+          v-if="isDataSeries && dateOptions" :date-group="dateGroup" :date-options="dateOptions"
           :selected-index="selectedIndex" :selected-date="selectedDate" :is-small-screen="isSmallScreen"
           @update:selected-index="selectedIndex = $event"
         />
@@ -123,7 +123,7 @@ const selectedDate = ref();
 let dateOptions: DateOptions[];
 let dateGroup: DateGroup[];
 const loading = ref(false);
-const hasSlider = ref(false);
+const isDataSeries = ref(false);
 
 const chartData = computed(() => {
   const data = selectedItem.value;
@@ -156,7 +156,7 @@ watch(feature, async () => {
   loading.value = true;
   fetchedData.value = null;
   seriesData.value = [];
-  hasSlider.value = false;
+  isDataSeries.value = false;
   selectedItem.value = null;
   selectedIndex.value = 0;
   if (feature.value) {
@@ -166,9 +166,9 @@ watch(feature, async () => {
       );
 
       const featureCollections = response as GeoJSON.FeatureCollection[];
-      hasSlider.value = featureCollections.flat().some(item => item.features[0].properties?.options?.slider?.toLowerCase() === 'yes');
+      isDataSeries.value = featureCollections.length > 1;
 
-      if (hasSlider.value) {
+      if (isDataSeries.value) {
         seriesData.value = featureCollections;
         dateOptions = getDateOptions(seriesData.value);
         dateGroup = getDatesGroups(seriesData.value);
