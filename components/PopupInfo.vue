@@ -18,7 +18,7 @@
         <strong>{{ detail.label }}: </strong>
         <template v-if="Array.isArray(detail.prop)">
           {{ detail.prop
-            .map((opt) => properties[opt] || 'N/A')
+            .map((opt: string) => properties[opt] || 'N/A')
             .join(' - ')
           }}
         </template>
@@ -53,7 +53,7 @@ const title = computed(() => {
   if (!properties.value.options) {
     return '';
   }
-  return properties.value.options.popup_name;
+  return properties.value[properties.value.options.popup_name];
 });
 
 const popupDetails = computed(() => {
