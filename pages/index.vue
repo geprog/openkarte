@@ -152,37 +152,39 @@ function onMarkerReset() {
   leafletMapRef.value?.resetSelectedMarker();
 }
 
-watch(feature, async () => {
-  loading.value = true;
-  fetchedData.value = null;
-  seriesData.value = [];
-  isDataSeries.value = false;
-  selectedItem.value = null;
-  selectedIndex.value = 0;
-  if (feature.value) {
-    try {
-      const response = await $fetch(
-        `/api/fetchOpenData?feature=${encodeURIComponent(feature.value)}`,
-      );
+watch(feature, async (newval) => {
+  if (newval) {
+    loading.value = true;
+    fetchedData.value = null;
+    seriesData.value = [];
+    isDataSeries.value = false;
+    selectedItem.value = null;
+    selectedIndex.value = 0;
+    if (feature.value) {
+      try {
+        const response = await $fetch(
+          `/api/fetchOpenData?feature=${encodeURIComponent(feature.value)}`,
+        );
 
-      const featureCollections = response as GeoJSON.FeatureCollection[];
-      isDataSeries.value = featureCollections.length > 1;
+        const featureCollections = response as GeoJSON.FeatureCollection[];
+        isDataSeries.value = featureCollections.length > 1;
 
-      if (isDataSeries.value) {
-        seriesData.value = featureCollections;
-        dateOptions = getDateOptions(seriesData.value);
-        dateGroup = getDatesGroups(seriesData.value);
-        selectedIndex.value = dateOptions.length - 1;
-        selectedDate.value = dateOptions[selectedIndex.value];
+        if (isDataSeries.value) {
+          seriesData.value = featureCollections;
+          dateOptions = getDateOptions(seriesData.value);
+          dateGroup = getDatesGroups(seriesData.value);
+          selectedIndex.value = dateOptions.length - 1;
+          selectedDate.value = dateOptions[selectedIndex.value];
+        }
+        else {
+          fetchedData.value = featureCollections[0];
+        }
       }
-      else {
-        fetchedData.value = featureCollections[0];
+      catch (error) {
+        console.error('Error fetching data:', error);
       }
+      loading.value = false;
     }
-    catch (error) {
-      console.error('Error fetching data:', error);
-    }
-    loading.value = false;
   }
 }, { immediate: true });
 
