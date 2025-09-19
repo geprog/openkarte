@@ -48,7 +48,6 @@ function findValueByKey(obj: unknown, key: string): string | number | undefined 
 function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
   const colorMap = new Map<string, string>();
   const legend = new Control({ position: 'topleft' });
-
   const legendDisplayOption: string[] = Array.from(
     new Set(
       data.features.map(
@@ -56,9 +55,9 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
       ),
     ),
   );
-
   const labelKey: string | undefined = data.features[0]?.properties?.options?.label_option;
   const key = labelKey ?? 'default';
+  const legendDetail = (data.features[0].properties?.options?.legend_details || []) as LegendDetails[];
 
   const rawValues: (string | number)[] = data.features.map(f => findValueByKey(f, key) ?? 'default');
 
@@ -67,8 +66,11 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
   );
 
   if (legendDisplayOption[0] === 'default') {
-    uniqueValues.forEach((value, i) => {
-      colorMap.set(value, generateColor(i, uniqueValues.length));
+    uniqueValues.forEach((value) => {
+      const match = legendDetail.find((item: LegendDetails) => item.label === value);
+      if (match?.color) {
+        colorMap.set(value, match.color);
+      }
     });
 
     legend.onAdd = function () {
@@ -78,12 +80,13 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
         'background: white; padding: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);',
       );
 
-      uniqueValues.forEach((value) => {
-        const color = colorMap.get(value);
-        div.innerHTML += `
+      legendDetail.forEach(({ label, color }) => {
+        if (uniqueValues.includes(label)) {
+          div.innerHTML += `
           <div style="color:black; margin-bottom:4px;">
-            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${value}
+            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
           </div>`;
+        }
       });
 
       return div;
