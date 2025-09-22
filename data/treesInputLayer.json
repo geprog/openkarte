@@ -20,11 +20,6 @@
     {
       "label_option": "typ",
       "legend_option": "default",
-      "legend_details": [
-        { "label": "Naturdenkmal", "color": "#10B981" },
-        { "label": "Städtischer Baum", "color": "#3B82F6" },
-        { "label": "Privater Baum", "color": "#0D9488" }
-      ],
       "type": "geo",
       "value_group": "",
       "display_option": "popup",

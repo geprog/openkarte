@@ -41,7 +41,7 @@ watch(() => props.fileName, async (newFile) => {
     return;
   try {
     urls.value = await $fetch<string[]>(
-      `/api/fetchOpenData/url?feature=${encodeURIComponent(newFile)}`,
+      `/api/fetchOpenData/meta-information?feature=${encodeURIComponent(newFile)}`,
     );
   }
   catch (err) {
