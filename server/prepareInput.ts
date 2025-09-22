@@ -25,7 +25,7 @@ export interface InputJSON {
   options: Options
 }
 
-function getFeatureFile(feature: string) {
+export async function getData(feature: string) {
   // eslint-disable-next-line node/prefer-global/process
   const dataDir = path.resolve(process.cwd(), 'data');
   const files = fs.readdirSync(dataDir);
@@ -38,25 +38,7 @@ function getFeatureFile(feature: string) {
 
   const filePath = path.join(dataDir, file);
   const jsonString = fs.readFileSync(filePath, 'utf-8');
-  return JSON.parse(jsonString);
-}
-
-export async function getData(feature: string) {
-  const input: InputJSON = getFeatureFile(feature);
+  const input: InputJSON = JSON.parse(jsonString);
   const fetchedData = await fetchData(input);
   return await fetchMappings(fetchedData, input);
-}
-
-export async function getUrl(feature: string) {
-  const input: InputJSON = getFeatureFile(feature);
-  if (!input?.datasets || input.datasets.length === 0)
-    return [];
-
-  // Map each dataset to a URL
-  const urls = input.datasets.map(
-    (ds: Dataset) =>
-      `https://${ds.host}/dataset/${encodeURIComponent(ds.id)}`,
-  );
-
-  return urls;
 }

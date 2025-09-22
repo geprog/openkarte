@@ -15,15 +15,8 @@
         </button>
         <span class="text-lg font-semibold">{{ t('openMap') }}</span>
       </div>
-      <div v-if="feature" class="text-lg font-semibold flex">
+      <div v-if="feature" class="text-lg font-semibold">
         {{ featureOptions.find((opt: MapDisplayOptions) => opt.name === feature)?.title }}
-        <UButton
-          v-if="showDetailButton"
-          icon="i-heroicons-clipboard-document-list"
-          color="neutral"
-          variant="ghost"
-          @click="showUrlCard = true"
-        />
       </div>
       <div class="flex gap-4 px-4">
         <UButton
@@ -80,7 +73,6 @@
       </main>
     </div>
   </div>
-  <UrlCard v-if="showUrlCard" :file-name="feature" @close="showUrlCard = false" />
 </template>
 
 <script setup lang="ts">
@@ -98,8 +90,6 @@ const featureOptions = featureOptionsJson.options;
 
 const router = useRouter();
 const route = useRoute();
-const showUrlCard = ref(false);
-const showDetailButton = ref(false);
 
 const leafletMapRef = ref<InstanceType<typeof MyLeafletMap> | null>(null);
 const { t, locale, setLocale } = useI18n();

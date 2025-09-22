@@ -109,8 +109,8 @@
       "legend_option": "default",
       "legend_details": [
         { "label": "ausgezeichnet (Überprüfung nur bei Änderung der Einstufung)", "color": "#10B981" },
-        { "label": "ausreichend (Überprüfung mindestens alle 3 J)", "color": "#3B82F6" },
         { "label": "gut (Überprüfung mindestens alle vier Jahre)", "color": "#0D9488" },
+        { "label": "ausreichend (Überprüfung mindestens alle 3 J)", "color": "#3B82F6" },
         { "label": "mangelhaft (Überprüfung mindestens alle 2 J)", "color": "#FF0000" },
         { "label": "neu", "color": "#8B5CF6" }
       ],
