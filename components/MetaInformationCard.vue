@@ -2,7 +2,7 @@
   <div
     class="absolute inset-0 z-50 flex items-center justify-center bg-black/50"
   >
-    <UCard class="relative w-96 max-h-[70vh] p-0">
+    <UCard class="relative w-1/2 max-h-[70vh] p-0">
       <div class="flex items-center justify-between p-4 border-b border-gray-200">
         <h3 class="text-lg font-semibold m-0">
           {{ t('datasetDetail') }}
@@ -15,7 +15,12 @@
         </button>
       </div>
       <div class="max-h-[50vh] overflow-y-auto divide-y divide-gray-200">
-        <LoadingSpinner v-if="urls.length <= 0" class=" dark:text-white" />
+        <div
+          v-if="urls.length <= 0"
+          class="absolute inset-0 z-[9999] flex items-center justify-center bg-white/50 backdrop-blur-sm cursor-not-allowed"
+        >
+          <LoadingSpinner />
+        </div>
         <div
           v-for="(item, index) in urls"
           v-else
