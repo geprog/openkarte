@@ -175,9 +175,10 @@ watch(feature, async (newval) => {
         const response = await $fetch(
           `/api/fetchOpenData?feature=${encodeURIComponent(feature.value)}`,
         );
+
         const featureCollections = response as GeoJSON.FeatureCollection[];
         isDataSeries.value = featureCollections.length > 1;
-        showDetailButton.value = true;
+
         if (isDataSeries.value) {
           seriesData.value = featureCollections;
           dateOptions = getDateOptions(seriesData.value);
