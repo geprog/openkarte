@@ -3,5 +3,9 @@
   "mapDisplayOption": "Karten Display Optionen",
   "selectedDate": "Gewähltes Datum",
   "notAvailable": "Nicht verfügbar",
-  "loadingText": "Laden der Daten, bitte warten..."
+  "loadingText": "Laden der Daten, bitte warten...",
+  "datasetDetail": "Datensatzdetails",
+  "license": "Lizenz",
+  "organization": "Organisation",
+  "datasetUrl": "Datensatz-URL"
 }

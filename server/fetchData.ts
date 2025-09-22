@@ -353,3 +353,24 @@ function csvToGeoJSONFromRow(row: Record<string, string>, latKey = 'lat', lonKey
     properties,
   };
 }
+
+export async function fetchUrlData(dataset: Dataset) {
+  const url = `https://${dataset.host}/api/action/package_show?id=${dataset.id}`;
+  try {
+    const response = await fetch(url);
+    const res: Response<Package> = await response.json();
+    if (!res.success) {
+      return null;
+    }
+    return {
+      organization: res.result.organization,
+      url: `https://${dataset.host}/dataset/${encodeURIComponent(dataset.id)}`,
+      license_title: res.result.license_title,
+      license_url: res.result.license_url,
+    };
+  }
+  catch (err) {
+    console.error('failed url', err, url);
+    return null;
+  }
+}

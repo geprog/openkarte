@@ -3,5 +3,9 @@
   "mapDisplayOption": "Map Display Options",
   "selectedDate": "Selected Date",
   "notAvailable": "Not Available",
-  "loadingText": "Loading data, please wait..."
+  "loadingText": "Loading data, please wait...",
+  "datasetDetail": "Dataset detail",
+  "license": "License",
+  "organization": "Organization",
+  "datasetUrl": "Dataset url"
 }

@@ -5,42 +5,74 @@
     <UCard class="relative w-96 max-h-[70vh] p-0">
       <div class="flex items-center justify-between p-4 border-b border-gray-200">
         <h3 class="text-lg font-semibold m-0">
-          Fetched URLs
+          {{ t('datasetDetail') }}
         </h3>
         <button
-          class="text-white text-xl hover:text-red-400"
+          class="text-xl hover:text-red-400"
           @click="closeCard"
         >
           &times;
         </button>
       </div>
-      <div class="max-h-[30vh] overflow-y-auto p-4">
-        <ul class="list-disc pl-5 space-y-1">
-          <li v-for="(url, index) in urls" :key="index">
-            <a :href="url" target="_blank" rel="noopener" class="hover:underline">
-              {{ url }}
+      <div class="max-h-[50vh] overflow-y-auto divide-y divide-gray-200">
+        <LoadingSpinner v-if="urls.length <= 0" class=" dark:text-white" />
+        <div
+          v-for="(item, index) in urls"
+          v-else
+          :key="index"
+          class="p-4 space-y-2"
+        >
+          <p>
+            <span class="font-semibold">{{ t('organization') }}:</span>
+            {{ item.organization?.title || 'N/A' }}
+          </p>
+          <p>
+            <span class="font-semibold">{{ t('license') }}:</span>
+            <a
+              v-if="item.license_url"
+              :href="item.license_url"
+              target="_blank"
+              rel="noopener"
+              class="text-blue-600 hover:underline"
+            >
+              {{ item.license_title }}
             </a>
-          </li>
-        </ul>
+            <span v-else>{{ item.license_title || 'N/A' }}</span>
+          </p>
+          <p>
+            <span class="font-semibold">{{ t('datasetUrl') }}:</span>
+            <a
+              :href="item.url"
+              target="_blank"
+              rel="noopener"
+              class="text-blue-600 hover:underline"
+            >
+              {{ item.url }}
+            </a>
+          </p>
+        </div>
       </div>
     </UCard>
   </div>
 </template>
 
 <script setup lang="ts">
+import LoadingSpinner from './LoadingSpinner.vue';
+
 const props = defineProps<{
   fileName: string
 }>();
 
 const emit = defineEmits(['close']);
+const { t } = useI18n();
 
-const urls = ref<string[]>([]);
+const urls = ref<UrlInfo[]>([]);
 
 watch(() => props.fileName, async (newFile) => {
   if (!newFile)
     return;
   try {
-    urls.value = await $fetch<string[]>(
+    urls.value = await $fetch<UrlInfo[]>(
       `/api/fetchOpenData/meta-information?feature=${encodeURIComponent(newFile)}`,
     );
   }
@@ -50,7 +82,6 @@ watch(() => props.fileName, async (newFile) => {
   }
 }, { immediate: true });
 
-// Close card and notify parent
 function closeCard() {
   emit('close');
 }

@@ -1,7 +1,7 @@
 import type { Options } from '~/composables/dataTypes';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fetchData, fetchMappings } from '~/server/fetchData';
+import { fetchData, fetchMappings, fetchUrlData } from '~/server/fetchData';
 
 export interface Dataset {
   host: string
@@ -52,11 +52,11 @@ export async function getUrl(feature: string) {
   if (!input?.datasets || input.datasets.length === 0)
     return [];
 
-  // Map each dataset to a URL
-  const urls = input.datasets.map(
-    (ds: Dataset) =>
-      `https://${ds.host}/dataset/${encodeURIComponent(ds.id)}`,
+  // Run all fetchUrlData calls in parallel
+  const urls = await Promise.all(
+    input.datasets.map((ds: Dataset) => fetchUrlData(ds)),
   );
 
-  return urls;
+  // Filter out nulls in case some failed
+  return urls.filter((u): u is NonNullable<typeof u> => u !== null);
 }
