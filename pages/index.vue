@@ -78,8 +78,8 @@
         </div>
       </main>
     </div>
+    <MetaInformationModal v-if="showUrlCard" :file-name="feature" :show-url-card="showUrlCard" @close="showUrlCard = false" />
   </div>
-  <MetaInformationCard v-if="showUrlCard" :file-name="feature" @close="showUrlCard = false" />
 </template>
 
 <script setup lang="ts">
