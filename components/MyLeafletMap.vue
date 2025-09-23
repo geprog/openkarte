@@ -152,7 +152,7 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
     });
   }
 
-  if (leafletMap) {
+  if (leafletMap && legend.onAdd) {
     legend.addTo(leafletMap);
     legendControl = legend;
   }
@@ -239,6 +239,10 @@ function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
     geoJsonLayer.addTo(leafletMap as L.Map);
     geoJsonLayers.push(geoJsonLayer);
   });
+  const bounds = new L.LatLngBounds(geoJsonLayers.map(layer => [layer.getBounds().getNorthEast(), layer.getBounds().getSouthWest()]).flat());
+  if (bounds.isValid()) {
+    leafletMap?.fitBounds(bounds, { padding: [50, 50] });
+  }
 }
 
 function resetSelectedMarker() {

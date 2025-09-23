@@ -4,7 +4,7 @@
   >
     <div class="relative w-full h-2 rounded overflow-hidden">
       <div
-        v-for="group in props.dateGroup" :key="group.year" class="absolute h-full" :style="{
+        v-for="group in groupedDates" :key="group.year" class="absolute h-full" :style="{
           left: `${group.offset}%`,
           width: `${group.width}%`,
           backgroundColor: group.color,
@@ -14,17 +14,17 @@
 
     <div class="-mt-[17px]">
       <input
-        :value="props.selectedIndex" type="range" :min="0" :max="props.dateOptions.length - 1"
-        class="custom-slider w-full relative z-10" @input="emit('update:selectedIndex', +$event.target.value)"
+        v-model.number="modelValue" type="range" :min="0" :max="dateOptions.length - 1"
+        class="custom-slider w-full relative z-10"
       >
     </div>
 
     <div class="relative w-full h-5 mt-2">
       <span
-        v-for="group in props.dateGroup" :key="group.year" class="absolute text-sm text-white whitespace-nowrap font-medium" :style="{
+        v-for="group in groupedDates" :key="group.year" class="absolute text-sm text-white whitespace-nowrap font-medium" :style="{
           left: `${parseFloat(group.offset) + parseFloat(group.width) / 2}%`,
           transform: 'translateX(-50%)',
-          fontSize: props.isSmallScreen ? '0.50rem' : '1rem',
+          fontSize: isSmallScreen ? '0.50rem' : '1rem',
         }"
       >
         {{ group.year }}
@@ -32,7 +32,7 @@
     </div>
 
     <div class="mt-2 text-center text-white font-semibold">
-      {{ t('selectedDate') }}: {{ props.selectedDate }}
+      {{ t('selectedDate') }}: {{ selectedDate }}
     </div>
   </div>
 </template>
@@ -41,16 +41,22 @@
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
-  dateGroup: DateGroup[]
-  dateOptions: DateOptions[]
-  selectedIndex: number
-  selectedDate: string
+  dateOptions: string[]
   isSmallScreen: boolean
 }>();
 
-const emit = defineEmits<{
-  (e: 'update:selectedIndex', value: number): void
-}>();
+const modelValue = defineModel<number>({ required: true });
+
+const selectedDate = computed(() => {
+  if (props.dateOptions && props.dateOptions.length > 0) {
+    return props.dateOptions[modelValue.value];
+  }
+  return '';
+});
+
+const groupedDates = computed(() => {
+  return getDatesGroups(props.dateOptions);
+});
 
 const { t } = useI18n();
 </script>

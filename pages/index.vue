@@ -53,9 +53,8 @@
 
         <MyLeafletMap ref="leafletMapRef" :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
         <Slider
-          v-if="isDataSeries && dateOptions" :date-group="dateGroup" :date-options="dateOptions"
-          :selected-index="selectedIndex" :selected-date="selectedDate" :is-small-screen="isSmallScreen"
-          @update:selected-index="selectedIndex = $event"
+          v-if="isDataSeries && dateOptions" v-model="selectedIndex"
+          :date-options="dateOptions" :is-small-screen="isSmallScreen"
         />
         <PopupInfo
           v-if="selectedItem?.properties?.options?.display_option === 'popup'" :selected-item="selectedItem"
@@ -83,7 +82,7 @@ import LineChart from '~/components/LineChart.vue';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
 import PopupInfo from '~/components/PopupInfo.vue';
 import Slider from '~/components/Slider.vue';
-import { getDateOptions, getDatesGroups } from '~/composables/useSliderDates';
+import { getDateOptions } from '~/composables/useSliderDates';
 import featureOptionsJson from '~/data/mapDisplayOptions.json';
 
 const featureOptions = featureOptionsJson.options;
@@ -120,8 +119,7 @@ const feature = computed<string | null>(() => {
 const selectedIndex = ref(0);
 const selectedItem = ref<GeoJSON.Feature | null>(null);
 const selectedDate = ref();
-let dateOptions: DateOptions[];
-let dateGroup: DateGroup[];
+let dateOptions: string[];
 const loading = ref(false);
 const isDataSeries = ref(false);
 
@@ -172,7 +170,6 @@ watch(feature, async (newval) => {
         if (isDataSeries.value) {
           seriesData.value = featureCollections;
           dateOptions = getDateOptions(seriesData.value);
-          dateGroup = getDatesGroups(seriesData.value);
           selectedIndex.value = dateOptions.length - 1;
           selectedDate.value = dateOptions[selectedIndex.value];
         }
