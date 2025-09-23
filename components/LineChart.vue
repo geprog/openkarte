@@ -1,5 +1,5 @@
 <template>
-  <div class="relative p-4 rounded-lg shadow-lg">
+  <div>
     <!-- Close button -->
     <button
       class="absolute top-2 right-2 text-xl hover:text-red-400"
