@@ -18,7 +18,7 @@
       <div v-if="feature" class="text-lg font-semibold flex">
         {{ featureOptions.find((opt: MapDisplayOptions) => opt.name === feature)?.title }}
         <UButton
-          icon="i-heroicons-clipboard-document-list"
+          icon="i-heroicons-information-circle"
           color="neutral"
           variant="ghost"
           @click="showUrlCard = true"
