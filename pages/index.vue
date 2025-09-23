@@ -15,7 +15,7 @@
         </button>
         <span class="text-lg font-semibold">{{ t('openMap') }}</span>
       </div>
-      <div v-if="feature" class="text-lg font-semibold flex">
+      <div v-if="feature" class="text-lg font-semibold flex gap-2">
         {{ featureOptions.find((opt: MapDisplayOptions) => opt.name === feature)?.title }}
         <UButton
           icon="i-heroicons-information-circle"
