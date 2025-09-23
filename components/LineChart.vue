@@ -1,5 +1,5 @@
 <template>
-  <div class="relative p-4 rounded-lg shadow-lg">
+  <div>
     <!-- Close button -->
     <button
       class="absolute top-2 right-2 text-xl hover:text-red-400"
@@ -8,7 +8,9 @@
       &times;
     </button>
 
-    <Line :data="data" :options="options" />
+    <div class="w-full" style="height: 300px; max-height: 50vh;">
+      <Line :data="data" :options="options" />
+    </div>
   </div>
 </template>
 
@@ -68,6 +70,7 @@ const data = computed(() => ({
 
 const options = computed(() => ({
   responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     title: {
       display: true,

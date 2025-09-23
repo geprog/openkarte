@@ -3,9 +3,9 @@
     class="absolute bottom-30 left-1/2 transform -translate-x-1/2 bg-white dark:bg-slate-900 text-black dark:text-white p-4 rounded-lg shadow-lg z-1000 w-[90%] max-w-xl"
   >
     <div class="relative">
-      <h2 v-if="title" class="text-lg font-bold text-center">
+      <p v-if="title" class="pr-10 text-sm md:text-xl lg:text-2xl font-bold text-center">
         {{ title }}
-      </h2>
+      </p>
       <button
         class="absolute top-0 right-0 text-xl hover:text-red-400"
         @click="handleClose"
