@@ -1,7 +1,7 @@
 import type { Options } from '~/composables/dataTypes';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fetchData, fetchMappings } from '~/server/fetchData';
+import { fetchData, fetchMappings, fetchUrlData } from '~/server/fetchData';
 
 export interface Dataset {
   host: string
@@ -25,7 +25,7 @@ export interface InputJSON {
   options: Options
 }
 
-export async function getData(feature: string) {
+function getFeatureFile(feature: string) {
   // eslint-disable-next-line node/prefer-global/process
   const dataDir = path.resolve(process.cwd(), 'data');
   const files = fs.readdirSync(dataDir);
@@ -38,7 +38,21 @@ export async function getData(feature: string) {
 
   const filePath = path.join(dataDir, file);
   const jsonString = fs.readFileSync(filePath, 'utf-8');
-  const input: InputJSON = JSON.parse(jsonString);
+  return JSON.parse(jsonString);
+}
+
+export async function getData(feature: string) {
+  const input: InputJSON = getFeatureFile(feature);
   const fetchedData = await fetchData(input);
   return await fetchMappings(fetchedData, input);
+}
+
+export async function getUrl(feature: string) {
+  const input: InputJSON = getFeatureFile(feature);
+  if (!input?.datasets || input.datasets.length === 0)
+    return [];
+  const urls = await Promise.all(
+    input.datasets.map((ds: Dataset) => fetchUrlData(ds)),
+  );
+  return urls.filter((u): u is NonNullable<typeof u> => u !== null);
 }

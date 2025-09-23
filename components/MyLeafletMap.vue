@@ -48,7 +48,6 @@ function findValueByKey(obj: unknown, key: string): string | number | undefined 
 function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
   const colorMap = new Map<string, string>();
   const legend = new Control({ position: 'topleft' });
-
   const legendDisplayOption: string[] = Array.from(
     new Set(
       data.features.map(
@@ -56,7 +55,6 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
       ),
     ),
   );
-
   const labelKey: string | undefined = data.features[0]?.properties?.options?.label_option;
   const key = labelKey ?? 'default';
 
@@ -81,9 +79,9 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
       uniqueValues.forEach((value) => {
         const color = colorMap.get(value);
         div.innerHTML += `
-          <div style="color:black; margin-bottom:4px;">
+        <div style="color:black; margin-bottom:4px;">
             <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${value}
-          </div>`;
+        </div>`;
       });
 
       return div;

@@ -6,5 +6,11 @@
   "loadingText": "Laden der Daten, bitte warten...",
   "github": "Github",
   "featureRequest": "Feature-Anfrage",
-  "startDiscussion": "Diskussion beginnen"
+  "startDiscussion": "Diskussion beginnen",
+  "datasetDetail": "Datensatzdetails",
+  "license": "Lizenz",
+  "organization": "Organisation",
+  "datasetUrl": "Datensatz-URL",
+  "name": "Name",
+  "seriesDatasets": "Serien-Datensätze"
 }
