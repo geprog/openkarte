@@ -275,6 +275,10 @@ onMounted(() => {
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(leafletMap);
+
+  L.control.attribution({
+    position: 'topright',
+  }).addTo(leafletMap);
 });
 
 watch(() => props.fetchedData, (newData) => {
