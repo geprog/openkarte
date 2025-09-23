@@ -29,3 +29,12 @@ export interface Options {
   popup_name?: string
   popup_details?: { label: string, prop: string | string[] }[]
 }
+
+export interface UrlInfo {
+  name: string
+  organization?: { title: string }
+  url: string
+  license_title?: string
+  license_url?: string
+  nested_series?: UrlInfo[]
+}

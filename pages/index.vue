@@ -15,8 +15,14 @@
         </button>
         <span class="text-lg font-semibold">{{ t('openMap') }}</span>
       </div>
-      <div v-if="feature" class="text-lg font-semibold">
+      <div v-if="feature" class="text-lg font-semibold flex gap-2">
         {{ featureOptions.find((opt: MapDisplayOptions) => opt.name === feature)?.title }}
+        <UButton
+          icon="i-heroicons-information-circle"
+          color="neutral"
+          variant="ghost"
+          @click="showUrlCard = true"
+        />
       </div>
       <div class="flex gap-4 px-4">
         <UButton
@@ -102,6 +108,7 @@
         </div>
       </main>
     </div>
+    <MetaInformationModal v-if="showUrlCard" :file-name="feature" :show-url-card="showUrlCard" @close="showUrlCard = false" />
   </div>
 </template>
 
@@ -120,6 +127,7 @@ const featureOptions = featureOptionsJson.options;
 
 const router = useRouter();
 const route = useRoute();
+const showUrlCard = ref(false);
 
 const leafletMapRef = ref<InstanceType<typeof MyLeafletMap> | null>(null);
 const { t, locale, setLocale } = useI18n();
