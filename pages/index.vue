@@ -35,7 +35,7 @@
     </header>
 
     <div class="flex flex-1 overflow-hidden">
-      <aside v-show="sidebarOpen" class="bg-blue w-64 h-screen flex flex-col border-r transition-all duration-300">
+      <aside v-show="sidebarOpen" class="w-64 h-screen flex flex-col border-r transition-all duration-300">
         <div class="flex-1 p-4 overflow-y-auto">
           <div class="flex justify-between items-center font-semibold text-lg mb-4">
             <h3>{{ t('mapDisplayOption') }}</h3>
@@ -100,7 +100,7 @@
         />
         <div
           v-if="selectedItem?.properties?.options?.display_option === 'line chart'"
-          class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-2xl"
+          class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-white dark:bg-slate-900 text-black dark:text-white p-4 rounded-lg shadow-lg z-1000 w-[90%] max-w-2xl"
         >
           <LineChart
             v-if="selectedItem" :chart-data="chartData" :selected-item="selectedItem" class="mt-4"

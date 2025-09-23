@@ -1,19 +1,19 @@
 <template>
   <div
-    class="absolute bottom-30 left-1/2 transform -translate-x-1/2 bg-white dark:bg-slate-900 text-black dark:text-white p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-xl"
+    class="absolute bottom-30 left-1/2 transform -translate-x-1/2 bg-white dark:bg-slate-900 text-black dark:text-white p-4 rounded-lg shadow-lg z-1000 w-[90%] max-w-xl"
   >
     <div class="relative">
-      <h2 v-if="title" class="text-lg font-bold text-white text-center">
+      <h2 v-if="title" class="text-lg font-bold text-center">
         {{ title }}
       </h2>
       <button
-        class="absolute top-0 right-0 text-white text-xl hover:text-red-400"
+        class="absolute top-0 right-0 text-xl hover:text-red-400"
         @click="handleClose"
       >
         &times;
       </button>
     </div>
-    <ul class="mt-2 space-y-1 text-sm text-white">
+    <ul class="mt-2 space-y-1 text-sm">
       <li v-for="(detail, index) in popupDetails" :key="index">
         <strong>{{ detail.label }}: </strong>
         <template v-if="Array.isArray(detail.prop)">
