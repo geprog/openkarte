@@ -1,6 +1,6 @@
 <template>
   <div
-    class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-slate-900 bg-opacity-80"
+    class="w-full px-6 py-4"
   >
     <div class="relative w-full h-2 rounded overflow-hidden">
       <div
@@ -21,7 +21,7 @@
 
     <div class="relative w-full h-5 mt-2">
       <span
-        v-for="group in props.dateGroup" :key="group.year" class="absolute text-sm text-white whitespace-nowrap font-medium" :style="{
+        v-for="group in props.dateGroup" :key="group.year" class="absolute text-sm whitespace-nowrap font-medium" :style="{
           left: `${parseFloat(group.offset) + parseFloat(group.width) / 2}%`,
           transform: 'translateX(-50%)',
           fontSize: props.isSmallScreen ? '0.50rem' : '1rem',
@@ -31,7 +31,7 @@
       </span>
     </div>
 
-    <div class="mt-2 text-center text-white font-semibold">
+    <div class="mt-2 text-center font-semibold">
       {{ t('selectedDate') }}: {{ props.selectedDate }}
     </div>
   </div>

@@ -15,8 +15,14 @@
         </button>
         <span class="text-lg font-semibold">{{ t('openMap') }}</span>
       </div>
-      <div v-if="feature" class="text-lg font-semibold">
+      <div v-if="feature" class="text-lg font-semibold flex gap-2">
         {{ featureOptions.find((opt: MapDisplayOptions) => opt.name === feature)?.title }}
+        <UButton
+          icon="i-heroicons-information-circle"
+          color="neutral"
+          variant="ghost"
+          @click="showUrlCard = true"
+        />
       </div>
       <div class="flex gap-4 px-4">
         <UButton
@@ -29,7 +35,7 @@
     </header>
 
     <div class="flex flex-1 overflow-hidden">
-      <aside v-show="sidebarOpen" class="bg-blue w-64 h-screen flex flex-col border-r transition-all duration-300">
+      <aside v-show="sidebarOpen" class="w-64 h-screen flex flex-col border-r transition-all duration-300">
         <div class="flex-1 p-4 overflow-y-auto">
           <div class="flex justify-between items-center font-semibold text-lg mb-4">
             <h3>{{ t('mapDisplayOption') }}</h3>
@@ -73,7 +79,7 @@
         </div>
       </aside>
 
-      <main class="flex-1 relative">
+      <main class="flex-1 relative flex flex-col">
         <div
           v-if="loading"
           class="absolute inset-0 z-[9999] flex items-center justify-center bg-white/50 backdrop-blur-sm cursor-not-allowed"
@@ -81,10 +87,11 @@
           <LoadingSpinner />
         </div>
 
-        <MyLeafletMap ref="leafletMapRef" :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
+        <MyLeafletMap ref="leafletMapRef" class="flex-grow" :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
         <Slider
           v-if="isDataSeries && dateOptions" :date-group="dateGroup" :date-options="dateOptions"
           :selected-index="selectedIndex" :selected-date="selectedDate" :is-small-screen="isSmallScreen"
+          class="flex-0"
           @update:selected-index="selectedIndex = $event"
         />
         <PopupInfo
@@ -93,7 +100,7 @@
         />
         <div
           v-if="selectedItem?.properties?.options?.display_option === 'line chart'"
-          class="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white p-4 rounded-lg shadow-lg z-[101] w-[95%] max-w-4xl sm:w-4/5 sm:max-w-2xl"
+          class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-white dark:bg-slate-900 text-black dark:text-white p-4 rounded-lg shadow-lg z-1000 w-[95%] max-w-4xl sm:w-4/5 sm:max-w-2xl"
         >
           <LineChart
             v-if="selectedItem" :chart-data="chartData" :selected-item="selectedItem" class="mt-4"
@@ -102,6 +109,7 @@
         </div>
       </main>
     </div>
+    <MetaInformationModal v-if="showUrlCard" :file-name="feature" :show-url-card="showUrlCard" @close="showUrlCard = false" />
   </div>
 </template>
 
@@ -120,6 +128,7 @@ const featureOptions = featureOptionsJson.options;
 
 const router = useRouter();
 const route = useRoute();
+const showUrlCard = ref(false);
 
 const leafletMapRef = ref<InstanceType<typeof MyLeafletMap> | null>(null);
 const { t, locale, setLocale } = useI18n();
