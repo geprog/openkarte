@@ -3,5 +3,8 @@
   "mapDisplayOption": "Map Display Options",
   "selectedDate": "Selected Date",
   "notAvailable": "Not Available",
-  "loadingText": "Loading data, please wait..."
+  "loadingText": "Loading data, please wait...",
+  "github": "Github",
+  "featureRequest": "Feature request",
+  "startDiscussion": "Start a discussion"
 }

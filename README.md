@@ -23,6 +23,12 @@
 
 openkarte is not just a tool for developers or researchers — it’s a public-facing platform that makes open data tangible. By visualizing relationships between different data layers, it helps uncover insights, support local decision-making, and foster transparency.
 
+## 🐛 Issues & 💡 Feature Requests
+
+If you run into a problem or have a question then start a discussion https://github.com/geprog/openkarte/discussions.
+Would you like to suggest a new feature then please create an issue https://github.com/geprog/openkarte/issues.
+Your contributions and feedback are always welcome and helps improve the project!
+
 ## 🔗 Live Demo
 
 Visit the current version at: https://openkarte.de
