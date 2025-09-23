@@ -11,5 +11,6 @@
   "license": "Lizenz",
   "organization": "Organisation",
   "datasetUrl": "Datensatz-URL",
-  "name": "Name"
+  "name": "Name",
+  "seriesDatasets": "Serien-Datensätze"
 }

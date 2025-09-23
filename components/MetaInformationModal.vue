@@ -1,7 +1,7 @@
 <template>
-  <UModal v-model:open="showModal" persistent>
+  <UModal v-model:open="showModal" :ui="{ content: 'max-w-5xl' }">
     <template #content>
-      <UCard class="w-full max-w-lg mx-auto max-h-[70vh]">
+      <UCard>
         <div class="flex items-center justify-between p-4 border-b border-gray-200">
           <h3 class="text-lg font-semibold m-0">
             {{ t('datasetDetail') }}
@@ -52,55 +52,53 @@
                 </a>
               </p>
               <div v-if="item.nested_series && item.nested_series.length > 0" class="mt-2">
-                <button
-                  class="text-sm hover:underline flex items-center" variant="outline" color="blue" @click="toggleNested(index)"
-                >
-                  <span v-if="openIndexes.includes(index)">▼ {{ t('hideNested') }}</span>
-                  <span v-else>▶ {{ t('showNested') }}</span>
-                </button>
-                <div
-                  v-if="openIndexes.includes(index)"
-                  class="ml-6 mt-2 border-gray-200 pl-4 space-y-2 divide-y"
-                >
+                <details>
+                  <summary>
+                    {{ t('seriesDatasets') }}
+                  </summary>
                   <div
-                    v-for="(nested, nestedIndex) in item.nested_series"
-                    :key="nestedIndex"
-                    class="space-y-1"
+                    class="ml-6 mt-2 border-gray-200 pl-4 space-y-2 divide-y"
                   >
-                    <p>
-                      <span class="font-semibold">{{ t('name') }}: </span>
-                      {{ nested.name || 'N/A' }}
-                    </p>
-                    <p>
-                      <span class="font-semibold">{{ t('organization') }}: </span>
-                      {{ nested.organization?.title || 'N/A' }}
-                    </p>
-                    <p>
-                      <span class="font-semibold">{{ t('license') }}: </span>
-                      <a
-                        v-if="nested.license_url"
-                        :href="nested.license_url"
-                        target="_blank"
-                        rel="noopener"
-                        class="text-blue-600 hover:underline"
-                      >
-                        {{ nested.license_title }}
-                      </a>
-                      <span v-else>{{ nested.license_title || 'N/A' }}</span>
-                    </p>
-                    <p>
-                      <span class="font-semibold">{{ t('datasetUrl') }}: </span>
-                      <a
-                        :href="nested.url"
-                        target="_blank"
-                        rel="noopener"
-                        class="text-blue-600 hover:underline"
-                      >
-                        {{ nested.url }}
-                      </a>
-                    </p>
+                    <div
+                      v-for="(nested, nestedIndex) in item.nested_series"
+                      :key="nestedIndex"
+                      class="space-y-1"
+                    >
+                      <p>
+                        <span class="font-semibold">{{ t('name') }}: </span>
+                        {{ nested.name || 'N/A' }}
+                      </p>
+                      <p>
+                        <span class="font-semibold">{{ t('organization') }}: </span>
+                        {{ nested.organization?.title || 'N/A' }}
+                      </p>
+                      <p>
+                        <span class="font-semibold">{{ t('license') }}: </span>
+                        <a
+                          v-if="nested.license_url"
+                          :href="nested.license_url"
+                          target="_blank"
+                          rel="noopener"
+                          class="text-blue-600 hover:underline"
+                        >
+                          {{ nested.license_title }}
+                        </a>
+                        <span v-else>{{ nested.license_title || 'N/A' }}</span>
+                      </p>
+                      <p>
+                        <span class="font-semibold">{{ t('datasetUrl') }}: </span>
+                        <a
+                          :href="nested.url"
+                          target="_blank"
+                          rel="noopener"
+                          class="text-blue-600 hover:underline"
+                        >
+                          {{ nested.url }}
+                        </a>
+                      </p>
+                    </div>
                   </div>
-                </div>
+                </details>
               </div>
             </div>
           </div>
@@ -121,16 +119,6 @@ const props = defineProps<{
 const emit = defineEmits(['close']);
 const { t } = useI18n();
 const showModal = ref(props.showUrlCard);
-const openIndexes = ref<number[]>([]);
-
-function toggleNested(index: number) {
-  if (openIndexes.value.includes(index)) {
-    openIndexes.value = openIndexes.value.filter(i => i !== index);
-  }
-  else {
-    openIndexes.value.push(index);
-  }
-}
 
 watch(() => props.showUrlCard, (val) => {
   showModal.value = val;
