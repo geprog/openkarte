@@ -1,5 +1,5 @@
 <template>
-  <div ref="map" class="absolute inset-0 z-0" />
+  <div ref="map" />
 </template>
 
 <script setup lang="ts">
@@ -272,10 +272,6 @@ onMounted(() => {
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
-  }).addTo(leafletMap);
-
-  L.control.attribution({
-    position: 'topright',
   }).addTo(leafletMap);
 });
 

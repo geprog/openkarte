@@ -79,7 +79,7 @@
         </div>
       </aside>
 
-      <main class="flex-1 relative">
+      <main class="flex-1 relative flex flex-col">
         <div
           v-if="loading"
           class="absolute inset-0 z-[9999] flex items-center justify-center bg-white/50 backdrop-blur-sm cursor-not-allowed"
@@ -87,10 +87,11 @@
           <LoadingSpinner />
         </div>
 
-        <MyLeafletMap ref="leafletMapRef" :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
+        <MyLeafletMap ref="leafletMapRef" class="flex-grow" :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
         <Slider
           v-if="isDataSeries && dateOptions" :date-group="dateGroup" :date-options="dateOptions"
           :selected-index="selectedIndex" :selected-date="selectedDate" :is-small-screen="isSmallScreen"
+          class="flex-0"
           @update:selected-index="selectedIndex = $event"
         />
         <PopupInfo

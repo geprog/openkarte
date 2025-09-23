@@ -1,6 +1,6 @@
 <template>
   <div
-    class="absolute z-[100] bottom-0 left-1/2 transform -translate-x-1/2 w-full px-6 py-4 bg-slate-900 bg-opacity-80"
+    class="w-full px-6 py-4 bg-slate-900 bg-opacity-80"
   >
     <div class="relative w-full h-2 rounded overflow-hidden">
       <div
