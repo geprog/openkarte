@@ -93,7 +93,7 @@
         />
         <div
           v-if="selectedItem?.properties?.options?.display_option === 'line chart'"
-          class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-slate-900 text-black p-4 rounded-lg shadow-lg z-[101] w-[90%] max-w-2xl"
+          class="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white p-4 rounded-lg shadow-lg z-[101] w-[95%] max-w-4xl sm:w-4/5 sm:max-w-2xl"
         >
           <LineChart
             v-if="selectedItem" :chart-data="chartData" :selected-item="selectedItem" class="mt-4"

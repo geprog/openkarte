@@ -8,7 +8,9 @@
       &times;
     </button>
 
-    <Line :data="data" :options="options" />
+    <div class="w-full" style="height: 300px; max-height: 50vh;">
+      <Line :data="data" :options="options" />
+    </div>
   </div>
 </template>
 
@@ -68,6 +70,7 @@ const data = computed(() => ({
 
 const options = computed(() => ({
   responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     title: {
       display: true,
