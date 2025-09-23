@@ -28,11 +28,11 @@
           class="p-4 space-y-2"
         >
           <p>
-            <span class="font-semibold">{{ t('organization') }}:</span>
+            <span class="font-semibold">{{ t('organization') }}: </span>
             {{ item.organization?.title || 'N/A' }}
           </p>
           <p>
-            <span class="font-semibold">{{ t('license') }}:</span>
+            <span class="font-semibold">{{ t('license') }}: </span>
             <a
               v-if="item.license_url"
               :href="item.license_url"
@@ -45,7 +45,7 @@
             <span v-else>{{ item.license_title || 'N/A' }}</span>
           </p>
           <p>
-            <span class="font-semibold">{{ t('datasetUrl') }}:</span>
+            <span class="font-semibold">{{ t('datasetUrl') }}: </span>
             <a
               :href="item.url"
               target="_blank"
