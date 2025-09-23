@@ -18,9 +18,14 @@ export interface MapDisplayOptions {
   title: string
 }
 
+export interface LegendDetails {
+  label: string
+  color: string
+}
+
 export interface Options {
   label_option: string
-  legend_option: string
+  legend_option: 'default' | 'colorVariant'
   type: string
   value_group: string
   coordinate_field_x?: string
@@ -28,6 +33,7 @@ export interface Options {
   display_option: 'popup' | 'line chart'
   popup_name?: string
   popup_details?: { label: string, prop: string | string[] }[]
+  legend_details?: LegendDetails[]
 }
 
 export interface UrlInfo {
