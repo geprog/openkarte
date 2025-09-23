@@ -1,6 +1,6 @@
 <template>
   <div class="h-screen w-screen flex flex-col">
-    <header class="bg-blue shadow flex items-center justify-between">
+    <header class="bg-blue shadow flex items-center justify-between flex-wrap">
       <div class="flex items-center space-x-2">
         <button
           class="p-2 bg-blue rounded hover:bg-blue-600 flex items-center space-x-2"
@@ -24,7 +24,7 @@
           @click="showUrlCard = true"
         />
       </div>
-      <div class="flex gap-4 px-4">
+      <div class="flex gap-4 px-4 py-1">
         <UButton
           :icon="isDark ? 'i-lucide-moon' : 'i-lucide-sun'" color="neutral" variant="ghost"
           @click="isDark = !isDark"
