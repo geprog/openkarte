@@ -1,5 +1,5 @@
 <template>
-  <div ref="map" class="absolute inset-0 z-0" />
+  <div ref="map" />
 </template>
 
 <script setup lang="ts">

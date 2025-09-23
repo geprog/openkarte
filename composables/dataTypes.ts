@@ -35,3 +35,12 @@ export interface Options {
   popup_details?: { label: string, prop: string | string[] }[]
   legend_details?: LegendDetails[]
 }
+
+export interface UrlInfo {
+  name: string
+  organization?: { title: string }
+  url: string
+  license_title?: string
+  license_url?: string
+  nested_series?: UrlInfo[]
+}
