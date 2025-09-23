@@ -6,7 +6,7 @@
           <h3 class="text-lg font-semibold m-0">
             {{ t('datasetDetail') }}
           </h3>
-          <UButton size="md" variant="text" class="text-white text-xl hover:text-red-400" @click="closeCard">
+          <UButton size="md" variant="text" class="text-xl hover:text-red-400" @click="closeCard">
             &times;
           </UButton>
         </div>
