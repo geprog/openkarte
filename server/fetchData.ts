@@ -363,9 +363,9 @@ export async function fetchSeriesUrlData(host: string, dataset: Relationship) {
       return null;
     }
     return {
-      name: res.result.name,
+      name: res.result.title,
       organization: res.result.organization,
-      url: `https://${host}/api/action/package_show?id=${dataset.__extras.subject_package_id}`,
+      url: `https://${host}/dataset/${encodeURIComponent(res.result.name)}`,
       license_title: res.result.license_title,
       license_url: res.result.license_url,
     };
@@ -389,7 +389,7 @@ export async function fetchUrlData(dataset: Dataset) {
         res.result.relationships_as_object.map((s: Relationship) => fetchSeriesUrlData(dataset.host, s)),
       );
       return {
-        name: dataset.id,
+        name: dataset.title,
         nested_series: series,
         organization: res.result.organization,
         url: `https://${dataset.host}/dataset/${encodeURIComponent(dataset.id)}`,
@@ -398,7 +398,7 @@ export async function fetchUrlData(dataset: Dataset) {
       };
     }
     return {
-      name: dataset.id,
+      name: dataset.title,
       organization: res.result.organization,
       url: `https://${dataset.host}/dataset/${encodeURIComponent(dataset.id)}`,
       license_title: res.result.license_title,
