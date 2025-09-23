@@ -35,18 +35,48 @@
     </header>
 
     <div class="flex flex-1 overflow-hidden">
-      <aside v-show="sidebarOpen" class="bg-blue w-64 border-r p-4 overflow-y-auto transition-all duration-300">
-        <div class="flex justify-between items-center font-semibold text-lg mb-4">
-          <h3>{{ t('mapDisplayOption') }}</h3>
+      <aside v-show="sidebarOpen" class="bg-blue w-64 h-screen flex flex-col border-r transition-all duration-300">
+        <div class="flex-1 p-4 overflow-y-auto">
+          <div class="flex justify-between items-center font-semibold text-lg mb-4">
+            <h3>{{ t('mapDisplayOption') }}</h3>
+          </div>
+          <ul class="space-y-2">
+            <li
+              v-for="opt in featureOptions" :key="opt.name" class="cursor-pointer hover:text-blue-200"
+              :class="{ 'font-bold underline': feature === opt.name }" @click="setFeature(opt.name)"
+            >
+              {{ opt.title }}
+            </li>
+          </ul>
         </div>
-        <ul class="space-y-2">
-          <li
-            v-for="opt in featureOptions" :key="opt.name" class="cursor-pointer hover:text-blue-200"
-            :class="{ 'font-bold underline': feature === opt.name }" @click="setFeature(opt.name)"
+
+        <div class="flex flex-col p-4 mb-10 space-y-1">
+          <a
+            href="https://github.com/geprog/openkarte/discussions"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="block w-full text-center bg-blue-300 text-black font-semibold py-2 px-4 rounded-xl shadow hover:bg-blue-500 transition"
           >
-            {{ opt.title }}
-          </li>
-        </ul>
+            {{ t('startDiscussion') }}
+          </a>
+          <a
+            href="https://github.com/geprog/openkarte/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="block w-full text-center bg-blue-300 text-black font-semibold py-2 px-4 rounded-xl shadow hover:bg-blue-500 transition"
+          >
+            {{ t('featureRequest') }}
+          </a>
+          <a
+            href="https://github.com/geprog/openkarte"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center justify-center w-full text-center bg-blue-300 text-black font-semibold py-2 px-4 rounded-xl shadow hover:bg-blue-500 transition"
+          >
+            <img src="/github.png" alt="GitHub" class="w-5 mr-1">
+            {{ t('github') }}
+          </a>
+        </div>
       </aside>
 
       <main class="flex-1 relative">
