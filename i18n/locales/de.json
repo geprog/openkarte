@@ -12,5 +12,6 @@
   "organization": "Organisation",
   "datasetUrl": "Datensatz-URL",
   "name": "Name",
-  "seriesDatasets": "Serien-Datensätze"
+  "seriesDatasets": "Serien-Datensätze",
+  "notDefined": "Nicht definiert"
 }

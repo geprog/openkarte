@@ -12,9 +12,15 @@ import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility
 const props = defineProps<{
   fetchedData?: GeoJSON.FeatureCollection | null
 }>();
+
 const emit = defineEmits<{
   (e: 'marker-click', feature: GeoJSON.Feature): void
 }>();
+
+const NO_VALUE_COLOR = '#999999';
+
+const { t } = useI18n();
+
 let selectedMarker: L.Layer | null = null;
 const originalMarkerStyleMap = new Map<L.Layer, L.PathOptions>();
 let legendControl: L.Control | null = null;
@@ -59,14 +65,17 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
   const key = labelKey ?? 'default';
   const legendDetail = (data.features[0].properties?.options?.legend_details || []) as LegendDetails[];
 
-  const rawValues: (string | number)[] = data.features.map(f => findValueByKey(f, key) ?? 'default');
+  const rawValues = data.features.map(f => findValueByKey(f, key));
 
-  const uniqueValues: string[] = Array.from(
-    new Set(rawValues.map(v => String(v))),
+  const uniqueValues = Array.from(
+    new Set(rawValues.map(v => v === undefined ? undefined : String(v))),
   );
 
   if (legendDisplayOption[0] === 'default') {
     uniqueValues.forEach((value) => {
+      if (value === undefined) {
+        return;
+      }
       const match = legendDetail.find((item: LegendDetails) => item.label === value);
       if (match?.color) {
         colorMap.set(value, match.color);
@@ -88,29 +97,35 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
           </div>`;
         }
       });
+      if (uniqueValues.includes(undefined)) {
+        div.innerHTML += `
+          <div style="color:black; margin-bottom:4px;">
+            <i style="background:${NO_VALUE_COLOR}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${t('notDefined')}
+          </div>`;
+      }
 
       return div;
     };
   }
   else if (legendDisplayOption[0] === 'colorVarient') {
     const numericValues: number[] = uniqueValues
+      .filter(v => v !== undefined)
       .map(v => +v)
       .filter(v => !Number.isNaN(v));
 
-    if (numericValues.length === 0)
-      return colorMap;
-
-    const min = Math.min(...numericValues);
-    const max = Math.max(...numericValues);
-
-    const numBins = 5;
-    const step = (max - min) / numBins;
-
     const bins: [number, number][] = [];
-    for (let i = 0; i < numBins; i++) {
-      const start = min + i * step;
-      const end = i === numBins - 1 ? max : start + step;
-      bins.push([start, end]);
+    if (numericValues.length > 0) {
+      const min = Math.min(...numericValues);
+      const max = Math.max(...numericValues);
+
+      const numBins = 5;
+      const step = (max - min) / numBins;
+
+      for (let i = 0; i < numBins; i++) {
+        const start = min + i * step;
+        const end = i === numBins - 1 ? max : start + step;
+        bins.push([start, end]);
+      }
     }
 
     function getBinLabel(value: number): string {
@@ -141,6 +156,13 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
             <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
           </div>`;
       });
+
+      if (uniqueValues.includes(undefined)) {
+        div.innerHTML += `
+          <div style="color:black; margin-bottom:4px;">
+            <i style="background:${NO_VALUE_COLOR}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${t('notDefined')}
+          </div>`;
+      }
 
       return div;
     };
@@ -193,7 +215,7 @@ function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
       key = feature.properties?.__binLabel;
     }
 
-    const color = colorMap.get(key) ?? '#999';
+    const color = colorMap.get(key) ?? NO_VALUE_COLOR;
 
     const geoJsonLayer = L.geoJSON(feature, {
       style: () => ({

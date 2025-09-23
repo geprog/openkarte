@@ -25,7 +25,7 @@ export interface LegendDetails {
 
 export interface Options {
   label_option: string
-  legend_option: string
+  legend_option: 'default' | 'colorVariant'
   type: string
   value_group: string
   coordinate_field_x?: string
