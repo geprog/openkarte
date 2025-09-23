@@ -51,12 +51,8 @@ export async function getUrl(feature: string) {
   const input: InputJSON = getFeatureFile(feature);
   if (!input?.datasets || input.datasets.length === 0)
     return [];
-
-  // Run all fetchUrlData calls in parallel
   const urls = await Promise.all(
     input.datasets.map((ds: Dataset) => fetchUrlData(ds)),
   );
-
-  // Filter out nulls in case some failed
   return urls.filter((u): u is NonNullable<typeof u> => u !== null);
 }

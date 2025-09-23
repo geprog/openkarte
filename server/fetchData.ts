@@ -354,6 +354,28 @@ function csvToGeoJSONFromRow(row: Record<string, string>, latKey = 'lat', lonKey
   };
 }
 
+export async function fetchSeriesUrlData(host: string, dataset: Relationship) {
+  const url = `https://${host}/api/action/package_show?id=${dataset.__extras.subject_package_id}`;
+  try {
+    const response = await fetch(url);
+    const res: Response<Package> = await response.json();
+    if (!res.success) {
+      return null;
+    }
+    return {
+      name: res.result.name,
+      organization: res.result.organization,
+      url: `https://${host}/api/action/package_show?id=${dataset.__extras.subject_package_id}`,
+      license_title: res.result.license_title,
+      license_url: res.result.license_url,
+    };
+  }
+  catch (err) {
+    console.error('failed url', err, url);
+    return null;
+  }
+}
+
 export async function fetchUrlData(dataset: Dataset) {
   const url = `https://${dataset.host}/api/action/package_show?id=${dataset.id}`;
   try {
@@ -361,6 +383,19 @@ export async function fetchUrlData(dataset: Dataset) {
     const res: Response<Package> = await response.json();
     if (!res.success) {
       return null;
+    }
+    if (res.result.type === 'collection') {
+      const series = await Promise.all(
+        res.result.relationships_as_object.map((s: Relationship) => fetchSeriesUrlData(dataset.host, s)),
+      );
+      return {
+        name: dataset.id,
+        nested_series: series,
+        organization: res.result.organization,
+        url: `https://${dataset.host}/dataset/${encodeURIComponent(dataset.id)}`,
+        license_title: res.result.license_title,
+        license_url: res.result.license_url,
+      };
     }
     return {
       name: dataset.id,

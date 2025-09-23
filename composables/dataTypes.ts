@@ -36,4 +36,5 @@ export interface UrlInfo {
   url: string
   license_title?: string
   license_url?: string
+  nested_series?: UrlInfo[]
 }
