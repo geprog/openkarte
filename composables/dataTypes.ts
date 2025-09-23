@@ -31,6 +31,7 @@ export interface Options {
 }
 
 export interface UrlInfo {
+  name: string
   organization?: { title: string }
   url: string
   license_title?: string

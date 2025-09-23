@@ -7,5 +7,6 @@
   "datasetDetail": "Dataset detail",
   "license": "License",
   "organization": "Organization",
-  "datasetUrl": "Dataset url"
+  "datasetUrl": "Dataset url",
+  "name": "Name"
 }

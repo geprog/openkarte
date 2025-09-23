@@ -20,6 +20,10 @@
           <div class="overflow-y-auto max-h-[50vh] divide-y divide-gray-200">
             <div v-for="(item, index) in urls" :key="index" class="p-4 space-y-2">
               <p>
+                <span class="font-semibold">{{ t('name') }}: </span>
+                {{ item.name || 'N/A' }}
+              </p>
+              <p>
                 <span class="font-semibold">{{ t('organization') }}: </span>
                 {{ item.organization?.title || 'N/A' }}
               </p>

@@ -363,6 +363,7 @@ export async function fetchUrlData(dataset: Dataset) {
       return null;
     }
     return {
+      name: dataset.id,
       organization: res.result.organization,
       url: `https://${dataset.host}/dataset/${encodeURIComponent(dataset.id)}`,
       license_title: res.result.license_title,
