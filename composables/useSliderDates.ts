@@ -10,36 +10,30 @@ function isFeatureCollectionWithDate(item: GeoJSON.FeatureCollection): item is G
   return (item as GeoJSON.FeatureCollection & { date: string }).date !== undefined;
 }
 
-export function getDatesGroups(fetchedData: GeoJSON.FeatureCollection[]) {
-  const groupedDates = computed(() => {
-    const yearGroups = new Map<string, string[]>();
-    fetchedData
-      .filter(isFeatureCollectionWithDate)
-      .forEach((item) => {
-        const year = item.date.slice(0, 4);
-        if (!yearGroups.has(year)) {
-          yearGroups.set(year, []);
-        }
-        yearGroups.get(year)!.push(item.date);
-      });
-
-    const total = Array.from(yearGroups.values()).reduce((acc, arr) => acc + arr.length, 0);
-    let offset = 0;
-
-    return Array.from(yearGroups.entries()).map(([year, dates], i) => {
-      const width = (dates.length / total) * 100;
-      const group = {
-        year,
-        width: width.toFixed(2),
-        offset: offset.toFixed(2),
-        color: yearColors[i % yearColors.length],
-      };
-      offset += width;
-      return group;
-    });
+export function getDatesGroups(dateOptions: string[]) {
+  const yearGroups = new Map<string, string[]>();
+  dateOptions.forEach((date) => {
+    const year = date.slice(0, 4);
+    if (!yearGroups.has(year)) {
+      yearGroups.set(year, []);
+    }
+    yearGroups.get(year)!.push(date);
   });
 
-  return groupedDates.value;
+  const total = Array.from(yearGroups.values()).reduce((acc, arr) => acc + arr.length, 0);
+  let offset = 0;
+
+  return Array.from(yearGroups.entries()).map(([year, dates], i) => {
+    const width = (dates.length / total) * 100;
+    const group = {
+      year,
+      width: width.toFixed(2),
+      offset: offset.toFixed(2),
+      color: yearColors[i % yearColors.length],
+    };
+    offset += width;
+    return group;
+  });
 }
 
 export function getDateOptions(fetchedData: GeoJSON.FeatureCollection[]): string[] {
