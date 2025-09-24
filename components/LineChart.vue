@@ -1,14 +1,16 @@
 <template>
-  <div class="relative bg-slate-900 p-4 rounded-lg shadow-lg text-white">
+  <div>
     <!-- Close button -->
     <button
-      class="absolute top-2 right-2 text-white text-xl hover:text-red-400"
+      class="absolute top-2 right-2 text-xl hover:text-red-400"
       @click="emit('close')"
     >
       &times;
     </button>
 
-    <Line :data="data" :options="options" />
+    <div class="w-full" style="height: 300px; max-height: 50vh;">
+      <Line :data="data" :options="options" />
+    </div>
   </div>
 </template>
 
@@ -68,11 +70,11 @@ const data = computed(() => ({
 
 const options = computed(() => ({
   responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     title: {
       display: true,
       text: chartTitle.value,
-      color: '#ffffff',
       font: {
         size: 18,
         weight: 'bold' as const,
@@ -84,20 +86,12 @@ const options = computed(() => ({
       title: {
         display: true,
         text: properties.value.options.y_axis_label,
-        color: '#ffffff',
-      },
-      ticks: {
-        color: '#ffffff',
       },
     },
     x: {
       title: {
         display: true,
         text: properties.value.options.x_axis_label,
-        color: '#ffffff',
-      },
-      ticks: {
-        color: '#ffffff',
       },
     },
   },

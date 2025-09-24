@@ -27,6 +27,9 @@ export interface Package {
   relationships_as_subject: Relationship[]
   resources: Resource[]
   extras: { key: string, value: string }[]
+  license_title: string
+  license_url: string
+  organization: { key: string, value: string }
 }
 
 export type Response<T> = {
