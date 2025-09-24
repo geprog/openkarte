@@ -50,7 +50,7 @@
           </ul>
         </div>
 
-        <div class="flex flex-col p-4 mb-10 space-y-1">
+        <div class="flex flex-col p-4 mb-20 sm:mb-10 space-y-1">
           <a
             href="https://github.com/geprog/openkarte/discussions"
             target="_blank"
