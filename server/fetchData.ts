@@ -191,12 +191,13 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
 
       // Always return as FeatureCollection
       const id = source.childId ? [source.id, source.childId].join('/') : source.id;
+      // eslint-disable-next-line unused-imports/no-unused-vars
       const features = merged.map<GeoJSON.Feature | undefined>((row, index) => {
         const latitudeField = typeof datasets.options.latitude_field === 'string' ? datasets.options.latitude_field : (datasets.options.latitude_field ? datasets.options.latitude_field[id] || datasets.options.latitude_field[source.id] : undefined);
         const longitudeField = typeof datasets.options.longitude_field === 'string' ? datasets.options.longitude_field : (datasets.options.longitude_field ? datasets.options.longitude_field[id] || datasets.options.longitude_field[source.id] : undefined);
         const feature = isGeoJSON(row) ? row : csvToGeoJSONFromRow(row, latitudeField, longitudeField);
         if (!feature) {
-          console.debug('Invalid row, missing or invalid coordinates', index, source.id, source.childId);
+          // console.debug('Invalid row, missing or invalid coordinates', index, source.id, source.childId);
           return undefined;
         }
         return { ...feature, properties: { ...feature.properties, options: datasets.options } };
@@ -212,7 +213,7 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
       if (datasets.options.crs) {
         const crs = typeof datasets.options.crs === 'string' ? datasets.options.crs : (datasets.options.crs[id] || datasets.options.crs[source.id]);
         if (crs) {
-          console.info('Reprojecting ', id, ' from ', crs, ' to ', toProjection);
+          // console.info('Reprojecting ', id, ' from ', crs, ' to ', toProjection);
           return reprojectGeoJSON(featureCollection, crs);
         }
       }
@@ -255,7 +256,7 @@ function splitCsvLine(headerLine: string, rows: string[], separator: string): Re
     return rows.map((line) => {
       const values = line.split(separator).map(normalizeValue);
       if (values.length !== detectedHeaders.length) {
-        console.debug('Detected separator does not match number of columns in line compared to header', line, detectedHeaders, separator);
+        // console.debug('Detected separator does not match number of columns in line compared to header', line, detectedHeaders, separator);
       }
       const entry: Record<string, string> = {};
       detectedHeaders.forEach((key, i) => {
