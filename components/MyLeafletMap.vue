@@ -317,17 +317,30 @@ function clearLegend() {
 
 defineExpose({
   resetSelectedMarker,
+  invalidateMapSize,
 });
+
+function invalidateMapSize() {
+  if (leafletMap) {
+    leafletMap.invalidateSize({ animate: false });
+  }
+}
 
 onMounted(() => {
   if (!map.value)
     return;
 
-  leafletMap = L.map(map.value).setView([54.2194, 9.6961], 8);
+  leafletMap = L.map(map.value, { preferCanvas: true }).setView([54.2194, 9.6961], 8);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(leafletMap);
+  setTimeout(() => invalidateMapSize(), 300);
+  window.addEventListener('resize', invalidateMapSize);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', invalidateMapSize);
 });
 
 watch(() => props.fetchedData, (newData) => {

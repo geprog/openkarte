@@ -50,7 +50,7 @@
           </ul>
         </div>
 
-        <div class="flex flex-col p-4 mb-10 space-y-1">
+        <div class="flex flex-col p-4 mb-20 lg:mb-10 space-y-1">
           <a
             href="https://github.com/geprog/openkarte/discussions"
             target="_blank"
@@ -225,5 +225,11 @@ watch(feature, async (newval) => {
 
 watch(locale, (newLocale) => {
   setLocale(newLocale);
+});
+
+watch(sidebarOpen, () => {
+  setTimeout(() => {
+    leafletMapRef.value?.invalidateMapSize?.();
+  }, 300);
 });
 </script>
