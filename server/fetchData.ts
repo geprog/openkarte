@@ -191,13 +191,11 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
 
       // Always return as FeatureCollection
       const id = source.childId ? [source.id, source.childId].join('/') : source.id;
-      // eslint-disable-next-line unused-imports/no-unused-vars
-      const features = merged.map<GeoJSON.Feature | undefined>((row, index) => {
+      const features = merged.map<GeoJSON.Feature | undefined>((row) => {
         const latitudeField = typeof datasets.options.latitude_field === 'string' ? datasets.options.latitude_field : (datasets.options.latitude_field ? datasets.options.latitude_field[id] || datasets.options.latitude_field[source.id] : undefined);
         const longitudeField = typeof datasets.options.longitude_field === 'string' ? datasets.options.longitude_field : (datasets.options.longitude_field ? datasets.options.longitude_field[id] || datasets.options.longitude_field[source.id] : undefined);
         const feature = isGeoJSON(row) ? row : csvToGeoJSONFromRow(row, latitudeField, longitudeField);
         if (!feature) {
-          // console.debug('Invalid row, missing or invalid coordinates', index, source.id, source.childId);
           return undefined;
         }
         return { ...feature, properties: { ...feature.properties, options: datasets.options } };
@@ -213,14 +211,14 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
       if (datasets.options.crs) {
         const crs = typeof datasets.options.crs === 'string' ? datasets.options.crs : (datasets.options.crs[id] || datasets.options.crs[source.id]);
         if (crs) {
-          // console.info('Reprojecting ', id, ' from ', crs, ' to ', toProjection);
-          return reprojectGeoJSON(featureCollection, crs);
+          return reprojectGeoJSON(featureCollection, crs) as GeoJSON.FeatureCollection & { date?: string };
         }
       }
       return featureCollection;
     });
-    // Step 3: Normalize response wrapper
-    return results.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    return results
+      .filter(fc => fc.features.length > 0)
+      .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   }
   catch (error) {
     console.error('Error fetching Mappings', error);
@@ -256,7 +254,7 @@ function splitCsvLine(headerLine: string, rows: string[], separator: string): Re
     return rows.map((line) => {
       const values = line.split(separator).map(normalizeValue);
       if (values.length !== detectedHeaders.length) {
-        // console.debug('Detected separator does not match number of columns in line compared to header', line, detectedHeaders, separator);
+        console.error('Detected separator does not match number of columns in line compared to header', line, detectedHeaders, separator);
       }
       const entry: Record<string, string> = {};
       detectedHeaders.forEach((key, i) => {
@@ -362,14 +360,16 @@ function reprojectGeoJSON(geojson: GeoJSON.FeatureCollection, fromProjection: st
   if (fromProjection === toProjection) {
     return geojson;
   }
-  return {
-    ...geojson,
-    features: geojson.features.map((feature) => {
+  const reprojectedFeatures = geojson.features
+    .map((feature) => {
       if (feature.geometry.type !== 'Point') {
         return feature;
       }
-      const [x, y] = feature.geometry.coordinates;
+
+      const [x, y] = feature.geometry.coordinates as [number, number];
       const [lon, lat] = proj4(fromProjection, toProjection, [x, y]);
+
+      const [normLon, normLat] = normalizePoint([lon, lat]);
 
       let newBbox = feature.bbox;
       if (feature.bbox && feature.bbox.length === 4) {
@@ -383,11 +383,21 @@ function reprojectGeoJSON(geojson: GeoJSON.FeatureCollection, fromProjection: st
         ...feature,
         geometry: {
           ...feature.geometry,
-          coordinates: [lon, lat],
+          coordinates: [normLon, normLat],
         },
         bbox: newBbox,
       };
-    }),
+    })
+    .filter((feature) => {
+      if (feature.geometry.type === 'Point') {
+        return isInsideGermany(feature.geometry.coordinates as [number, number]);
+      }
+      return true;
+    });
+
+  return {
+    ...geojson,
+    features: reprojectedFeatures,
   };
 }
 
@@ -467,4 +477,35 @@ export async function fetchUrlData(dataset: Dataset) {
     console.error('failed url', err, url);
     return null;
   }
+}
+
+function normalizePoint([x, y]: [number, number]): [number, number] {
+  // If it looks like lat/lon are swapped
+  if (y >= 5.9 && y <= 15.0 && x >= 47.2 && x <= 55.1) {
+    return [y, x]; // swap
+  }
+  return [x, y];
+}
+
+function isInsideGermany([lon, lat]: [number, number]) {
+  return lon >= 5.9 && lon <= 15.0 && lat >= 47.2 && lat <= 55.1;
+}
+
+export async function normalizeFeatures(featureCollection: GeoJSON.FeatureCollection) {
+  const cleanedFeatures = featureCollection.features
+    .map((feature) => {
+      if (feature.geometry.type === 'Point') {
+        const coords = normalizePoint(feature.geometry.coordinates as [number, number]);
+        return { ...feature, geometry: { ...feature.geometry, coordinates: coords } };
+      }
+      return feature;
+    })
+    .filter((feature) => {
+      if (feature.geometry.type === 'Point') {
+        return isInsideGermany(feature.geometry.coordinates as [number, number]);
+      }
+      return true;
+    });
+
+  return { ...featureCollection, features: cleanedFeatures };
 }

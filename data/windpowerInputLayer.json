@@ -11,6 +11,11 @@
     {
       "label_option": "STATUS",
       "legend_option": "default",
+      "legend_details": [
+        { "label": "in Betrieb", "color": "#10B981" },
+        { "label": "vor Inbetriebnahme", "color": "#0D9488" },
+        { "label": "im Gen.Verf.", "color": "#3B82F6" }
+      ],
       "type": "series",
       "value_group": "",
       "display_option": "popup",

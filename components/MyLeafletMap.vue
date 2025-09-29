@@ -35,13 +35,19 @@ function findValueByKey(obj: unknown, key: string): string | number | undefined 
     return undefined;
 
   const record = obj as Record<string, unknown>;
+  const targetKey = key.toLowerCase();
 
-  if (key in record) {
-    const value = record[key];
-    if (typeof value === 'string' || typeof value === 'number')
-      return value;
+  // Case-insensitive key lookup
+  for (const k of Object.keys(record)) {
+    if (k.toLowerCase() === targetKey) {
+      const value = record[k];
+      if (typeof value === 'string' || typeof value === 'number') {
+        return value;
+      }
+    }
   }
 
+  // Recursively search nested objects
   for (const value of Object.values(record)) {
     const result = findValueByKey(value, key);
     if (result !== undefined)
@@ -73,10 +79,13 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
 
   if (legendDisplayOption[0] === 'default') {
     uniqueValues.forEach((value) => {
-      if (value === undefined) {
+      if (value === undefined)
         return;
-      }
-      const match = legendDetail.find((item: LegendDetails) => item.label === value);
+
+      const match = legendDetail.find(
+        (item: LegendDetails) => item.label.toLowerCase() === String(value).toLowerCase(),
+      );
+
       if (match?.color) {
         colorMap.set(value, match.color);
       }
@@ -209,7 +218,22 @@ function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
   data.features.forEach((feature) => {
     const legendOption = feature.properties?.options?.legend_option;
     const labelOption = feature.properties?.options?.label_option;
-    let key = labelOption ? feature.properties?.[labelOption] : undefined;
+    let key: string = 'default';
+
+    if (labelOption && feature.properties) {
+      const normalizedKey = Object.keys(feature.properties).find(
+        k => k.toLowerCase() === labelOption.toLowerCase(),
+      );
+      if (normalizedKey) {
+        const value = feature.properties[normalizedKey];
+        if (typeof value === 'string') {
+          key = value.trim();
+        }
+        else {
+          key = value;
+        }
+      }
+    }
 
     if (legendOption === 'colorVarient') {
       key = feature.properties?.__binLabel;
