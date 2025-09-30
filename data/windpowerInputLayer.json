@@ -20,7 +20,17 @@
       "value_group": "",
       "display_option": "popup",
       "popup_name": "AKTENZEICHEN",
-      "popup_details": [],
+      "popup_details": [
+        { "label": "Kreis", "prop": "Kreis" },
+        { "label": "Gemeinde", "prop": "Gemeinde" },
+        { "label": "Typ", "prop": "Typ" },
+        { "label": "Hersteller", "prop": "Hersteller" },
+        { "label": "Nabenhöhe", "prop": "Nabenhöhe" },
+        { "label": "Rotordurchmesser", "prop": "Rotordurchmesser" },
+        { "label": "Genehmigungsdatum", "prop": "Genehmigungsdatum" },
+        { "label": "Inbetriebnahme", "prop": "Inbetriebnahme" },
+        { "label": "Datendatum", "prop": "Datendatum" }
+      ],
       "crs": {
         "windkraftanlagen": "EPSG:25832",
         "windkraftanlagen/65f105e1-f7c0-48a1-9697-d77cef43d25c": "EPSG:4647",
