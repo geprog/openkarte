@@ -5,10 +5,6 @@ export interface DateGroup {
   color: string
 }
 
-export interface DateOptions {
-  [key: number]: string
-}
-
 export interface DataEntry {
   [key: string]: string | number
 }
@@ -28,8 +24,9 @@ export interface Options {
   legend_option: 'default' | 'colorVariant'
   type: string
   value_group: string
-  coordinate_field_x?: string
-  coordinate_field_y?: string
+  crs?: string | Record<string, string>
+  latitude_field?: string | Record<string, string>
+  longitude_field?: string | Record<string, string>
   display_option: 'popup' | 'line chart'
   popup_name?: string
   popup_details?: { label: string, prop: string | string[] }[]
