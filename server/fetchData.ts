@@ -20,6 +20,10 @@ export interface FetchedData { id: string, date?: string, data: Record<string, s
 
 export type FetchedDataArray = (GeoJSON.FeatureCollection & { date?: string })[];
 
+function normalizeFormat(format: string | undefined): string {
+  return (format ?? '').split('/').at(-1)?.toUpperCase() ?? '';
+}
+
 export async function fetchSeriesData(s: Relationship, dataset: Dataset): Promise<FetchedData | undefined> {
   try {
     const url = `https://${dataset.host}/api/action/package_show?id=${s.__extras.subject_package_id}`;
@@ -27,7 +31,7 @@ export async function fetchSeriesData(s: Relationship, dataset: Dataset): Promis
     const res: Response<Package> = await response.json();
     if (res.success) {
       const resource = res.result.resources.find(
-        res => res.format === 'CSV' || res.mimetype === 'text/csv',
+        res => normalizeFormat(res.format) === 'CSV' || res.mimetype === 'text/csv',
       )?.url;
       if (resource) {
         const publishedDate = res.result.extras.find(m => m.key === 'issued')?.value || '';
@@ -74,11 +78,12 @@ export async function fetchData(datasets: InputJSON): Promise<FetchedData[]> {
             if (resource.url) {
               resource.url = resource.url.replace(/^http:/, 'https:');
             }
-            if (resource.format === 'CSV') {
+            const format = normalizeFormat(resource.format);
+            if (format === 'CSV') {
               const data: FetchedData = { id: dataset.id, data: await fetchAndParseCsv(resource.url, dataset?.headers) };
               return [data];
             }
-            else if (['JSON', 'GeoJSON', 'SHP'].includes(resource.format)) {
+            else if (['JSON', 'GEOJSON', 'SHP'].includes(format)) {
               const data: FetchedData = { id: dataset.id, data: await fetchAndParseJson(resource.url) };
               return [data];
             }
