@@ -13,7 +13,9 @@ export interface Resource {
   name: string
   description: string
   mimetype: string
-  format: 'CSV' | 'GeoJSON' | 'JSON' | 'XML' | 'XLS' | 'XLSX' | 'PDF' | 'HTML' | 'TXT' | 'ZIP'
+  // Either a plain name ('CSV') or a DCAT-AP vocabulary URI
+  // ('http://publications.europa.eu/resource/authority/file-type/CSV').
+  format: string
   url: string
 }
 
