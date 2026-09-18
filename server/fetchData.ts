@@ -1,6 +1,7 @@
 import type { Package, Relationship, Response } from './types/ckan';
 import type { Dataset, InputJSON } from '~/server/prepareInput';
 import proj4 from 'proj4';
+import { withRequestSlot } from '~/server/utils/concurrency';
 import { fetchCsvFromUrl } from '~/server/utils/fetch-csv';
 import { fetchJsonFromUrl } from '~/server/utils/fetch-json';
 import { fetchZipFromUrl } from '~/server/utils/fetch-zip';
@@ -27,8 +28,10 @@ function normalizeFormat(format: string | undefined): string {
 export async function fetchSeriesData(s: Relationship, dataset: Dataset): Promise<FetchedData | undefined> {
   try {
     const url = `https://${dataset.host}/api/action/package_show?id=${s.__extras.subject_package_id}`;
-    const response = await fetch(url);
-    const res: Response<Package> = await response.json();
+    const res: Response<Package> = await withRequestSlot(async () => {
+      const response = await fetch(url);
+      return response.json();
+    });
     if (res.success) {
       const resource = res.result.resources.find(
         res => normalizeFormat(res.format) === 'CSV' || res.mimetype === 'text/csv',
@@ -57,8 +60,10 @@ export async function fetchData(datasets: InputJSON): Promise<FetchedData[]> {
         }
         const url = `https://${dataset.host}/api/action/package_show?id=${dataset.id}`;
         try {
-          const response = await fetch(url);
-          const res: Response<Package> = await response.json();
+          const res: Response<Package> = await withRequestSlot(async () => {
+            const response = await fetch(url);
+            return response.json();
+          });
 
           if (!res.success) {
             return null;
@@ -362,8 +367,10 @@ function csvToGeoJSONFromRow(row: Record<string, string>, latKey = 'lat', lonKey
 export async function fetchSeriesUrlData(host: string, dataset: Relationship) {
   const url = `https://${host}/api/action/package_show?id=${dataset.__extras.subject_package_id}`;
   try {
-    const response = await fetch(url);
-    const res: Response<Package> = await response.json();
+    const res: Response<Package> = await withRequestSlot(async () => {
+      const response = await fetch(url);
+      return response.json();
+    });
     if (!res.success) {
       return null;
     }
@@ -384,8 +391,10 @@ export async function fetchSeriesUrlData(host: string, dataset: Relationship) {
 export async function fetchUrlData(dataset: Dataset) {
   const url = `https://${dataset.host}/api/action/package_show?id=${dataset.id}`;
   try {
-    const response = await fetch(url);
-    const res: Response<Package> = await response.json();
+    const res: Response<Package> = await withRequestSlot(async () => {
+      const response = await fetch(url);
+      return response.json();
+    });
     if (!res.success) {
       return null;
     }
