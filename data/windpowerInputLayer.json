@@ -1,0 +1,59 @@
+{
+  "datasets": [
+    {
+      "host": "opendata.schleswig-holstein.de",
+      "id": "windkraftanlagen",
+      "title": "Windkraftanlagen"
+    }
+  ],
+  "mappings": [],
+  "options":
+    {
+      "label_option": "STATUS",
+      "legend_option": "default",
+      "legend_details": [
+        { "label": "in Betrieb", "color": "#10B981" },
+        { "label": "vor Inbetriebnahme", "color": "#0D9488" },
+        { "label": "im Gen.Verf.", "color": "#3B82F6" }
+      ],
+      "type": "series",
+      "value_group": "",
+      "display_option": "popup",
+      "popup_name": "AKTENZEICHEN",
+      "popup_details": [
+        { "label": "Kreis", "prop": "Kreis" },
+        { "label": "Gemeinde", "prop": "Gemeinde" },
+        { "label": "Typ", "prop": "Typ" },
+        { "label": "Hersteller", "prop": "Hersteller" },
+        { "label": "Nabenhöhe", "prop": "Nabenhöhe" },
+        { "label": "Rotordurchmesser", "prop": "Rotordurchmesser" },
+        { "label": "Genehmigungsdatum", "prop": "Genehmigungsdatum" },
+        { "label": "Inbetriebnahme", "prop": "Inbetriebnahme" },
+        { "label": "Datendatum", "prop": "Datendatum" }
+      ],
+      "crs": {
+        "windkraftanlagen": "EPSG:25832",
+        "windkraftanlagen/65f105e1-f7c0-48a1-9697-d77cef43d25c": "EPSG:4647",
+        "windkraftanlagen/12fb2027-d2d3-42c9-8774-34a70f584c0f": "EPSG:4647",
+        "windkraftanlagen/e1170052-286b-460e-9155-28b0bc44ae18": "EPSG:4647",
+        "windkraftanlagen/2c7d6758-e267-41ca-a68e-9dc9d5664ae8": "EPSG:4647",
+        "windkraftanlagen/7f93b5e0-d7be-48cb-9236-cffcfa12693a": "EPSG:4647",
+        "windkraftanlagen/f5287f83-47d1-459d-9440-00fd3154e108": "EPSG:4647",
+        "windkraftanlagen/9b4b5428-52d4-4676-a450-9ffb98b4670f": "EPSG:4647",
+        "windkraftanlagen/8623a709-4811-4c7f-b5d7-21203d24f11b": "EPSG:4647",
+        "windkraftanlagen/5fb10b92-97eb-4b2a-83d8-17cd17139ca5": "EPSG:4647"
+      },
+      "latitude_field": {
+        "windkraftanlagen": "NORDWERT",
+        "windkraftanlagen/9b4b5428-52d4-4676-a450-9ffb98b4670f": "Nordwert",
+        "windkraftanlagen/8623a709-4811-4c7f-b5d7-21203d24f11b": "Nordwert",
+        "windkraftanlagen/5fb10b92-97eb-4b2a-83d8-17cd17139ca5": "AN_HW"
+      },
+      "longitude_field": {
+        "windkraftanlagen": "OSTWERT",
+        "windkraftanlagen/9b4b5428-52d4-4676-a450-9ffb98b4670f": "Ostwert",
+        "windkraftanlagen/8623a709-4811-4c7f-b5d7-21203d24f11b": "Ostwert",
+        "windkraftanlagen/5fb10b92-97eb-4b2a-83d8-17cd17139ca5": "AN_RW"
+      }
+    }
+}

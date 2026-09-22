@@ -18,7 +18,8 @@ export default defineEventHandler(async (event) => {
   }
   console.info('Fetching data for feature:', feature); // eslint-disable-line no-console
   try {
-    if (cache[feature] && (Date.now() - cache[feature].timestamp < CACHE_DURATION)) {
+    // eslint-disable-next-line node/prefer-global/process
+    if (process.env.NODE_ENV !== 'development' && cache[feature] && (Date.now() - cache[feature].timestamp < CACHE_DURATION)) {
       console.info('Returning cached data for feature:', feature); // eslint-disable-line no-console
       return cache[feature].data;
     }

@@ -125,7 +125,7 @@
         { "label": "SAISON", "prop": ["SAISONBEGINN", "SAISONENDE", "GESCHLOSSEN"] },
         { "label": "INFRASTRUKTUR", "prop": "INFRASTRUKTUR" }
       ],
-      "coordinate_field_x": "GEOGR_BREITE",
-      "coordinate_field_y": "GEOGR_LAENGE"
+      "latitude_field": "GEOGR_BREITE",
+      "longitude_field": "GEOGR_LAENGE"
     }
 }
