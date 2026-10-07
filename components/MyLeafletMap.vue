@@ -20,7 +20,10 @@ const emit = defineEmits<{
   (e: 'marker-click', feature: GeoJSON.Feature): void
 }>();
 
-const NO_VALUE_COLOR = '#999999';
+// Features without a value are drawn as a dashed outline without fill, so
+// they cannot be mistaken for a legend class, not even a gray one.
+const NO_VALUE_COLOR = '#6b6b6b';
+const NO_VALUE_SWATCH_STYLE = `border:2px dashed ${NO_VALUE_COLOR}; box-sizing:border-box; width:12px; height:12px; display:inline-block; margin-right:4px;`;
 
 const { t } = useI18n();
 
@@ -112,7 +115,7 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
       if (uniqueValues.includes(undefined)) {
         div.innerHTML += `
           <div style="color:black; margin-bottom:4px;">
-            <i style="background:${NO_VALUE_COLOR}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${t('notDefined')}
+            <i style="${NO_VALUE_SWATCH_STYLE}"></i> ${t('notDefined')}
           </div>`;
       }
 
@@ -157,7 +160,7 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
       if (usedLabels.has(undefined)) {
         div.innerHTML += `
           <div style="color:black; margin-bottom:4px;">
-            <i style="background:${NO_VALUE_COLOR}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${t('notDefined')}
+            <i style="${NO_VALUE_SWATCH_STYLE}"></i> ${t('notDefined')}
           </div>`;
       }
 
@@ -220,24 +223,16 @@ function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
       key = feature.properties?.__binLabel;
     }
 
-    const color = colorMap.get(key) ?? NO_VALUE_COLOR;
+    const color = colorMap.get(key);
 
     const geoJsonLayer = L.geoJSON(feature, {
-      style: () => ({
-        color,
-        weight: 2,
-        opacity: 1,
-        fillColor: color,
-        fillOpacity: 0.7,
-      }),
+      style: () => color
+        ? { color, weight: 2, opacity: 1, fillColor: color, fillOpacity: 0.85 }
+        : { color: NO_VALUE_COLOR, weight: 2, opacity: 1, dashArray: '4 3', fillOpacity: 0 },
       pointToLayer: (feature, latlng) => {
-        const style: L.CircleMarkerOptions = {
-          radius: 6,
-          color,
-          fillColor: color,
-          fillOpacity: 0.8,
-          weight: 1,
-        };
+        const style: L.CircleMarkerOptions = color
+          ? { radius: 6, color, fillColor: color, fillOpacity: 0.8, weight: 1 }
+          : { radius: 6, color: NO_VALUE_COLOR, fillOpacity: 0, weight: 1.5 };
 
         const marker = L.circleMarker(latlng, style);
         originalMarkerStyleMap.set(marker, style);

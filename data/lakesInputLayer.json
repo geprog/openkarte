@@ -135,7 +135,7 @@
         { "label": "über +30 cm", "color": "#1c5cab", "min": 30 },
         { "label": "+15 bis +30 cm", "color": "#3987e5", "min": 15, "max": 30 },
         { "label": "+5 bis +15 cm", "color": "#86b6ef", "min": 5, "max": 15 },
-        { "label": "±5 cm (üblich)", "color": "#f0efec", "min": -5, "max": 5 },
+        { "label": "±5 cm (üblich)", "color": "#b8b5ac", "min": -5, "max": 5 },
         { "label": "−5 bis −15 cm", "color": "#ee958f", "min": -15, "max": -5 },
         { "label": "−15 bis −30 cm", "color": "#e34948", "min": -30, "max": -15 },
         { "label": "unter −30 cm", "color": "#a52a29", "max": -30 }

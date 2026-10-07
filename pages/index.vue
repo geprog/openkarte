@@ -168,6 +168,17 @@ const chartData = computed(() => {
   return Object.entries(timeline ?? {}).map(([month, [level]]) => ({ month, value: level }));
 });
 
+// Most gauges publish with a delay, so the current month only has values for
+// a few features. Start at the latest month that most features report,
+// measured against the past year as coverage grew over the decades.
+function latestWellCoveredMonth(collection: GeoJSON.FeatureCollection & { dates: string[] }): number {
+  const counts = collection.dates.map(month =>
+    collection.features.filter(f => f.properties?.timeline?.[month]?.[1] != null).length,
+  );
+  const enough = 0.9 * Math.max(...counts.slice(-12));
+  return counts.findLastIndex(count => count >= enough);
+}
+
 // Colors every feature by its deviation in the given month.
 function timelineSnapshot(collection: GeoJSON.FeatureCollection, month: string | undefined): GeoJSON.FeatureCollection {
   return {
@@ -224,7 +235,7 @@ watch(feature, async (newval) => {
         if (timeline?.dates) {
           timelineData.value = { ...timeline, dates: timeline.dates };
           dateOptions = timeline.dates;
-          selectedIndex.value = dateOptions.length - 1;
+          selectedIndex.value = latestWellCoveredMonth(timelineData.value);
           selectedDate.value = dateOptions[selectedIndex.value];
           fetchedData.value = timelineSnapshot(timeline, selectedDate.value);
         }
