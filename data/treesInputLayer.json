@@ -20,6 +20,7 @@
     {
       "label_option": "typ",
       "legend_option": "default",
+      "legend_title": "Art des Baums",
       "legend_details": [
         { "label": "Naturdenkmal", "color": "#10B981" },
         { "label": "Städtischer Baum", "color": "#3B82F6" },

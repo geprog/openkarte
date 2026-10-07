@@ -25,6 +25,7 @@
     {
       "label_option": "LEISTUNG",
       "legend_option": "ranges",
+      "legend_title": "Nennleistung der Anlage",
       "legend_details": [
         { "label": "< 2 MW", "color": "#86b6ef", "max": 2000 },
         { "label": "2 – 3 MW", "color": "#3987e5", "min": 2000, "max": 3000 },
