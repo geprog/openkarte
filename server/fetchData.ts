@@ -290,7 +290,8 @@ const MIN_YEARS_PER_CALENDAR_MONTH = 3;
 
 /**
  * Month → [mean level, deviation from that calendar month's long-term mean].
- * The deviation is null when there is too little history to compare against.
+ * The deviation is null when there is too little history to compare against,
+ * or when the month only has readings listed in `excluded_from_mean`.
  */
 export type Timeline = Record<string, [number, number | null]>;
 
@@ -303,16 +304,25 @@ export type Timeline = Record<string, [number, number | null]>;
  * to time, which shifts every later reading by metres. Readings are therefore
  * split into segments wherever two neighbours differ by more than
  * `level_jump_threshold`, and each segment is compared only with itself.
+ *
+ * Readings listed in `excluded_from_mean` (gauges that publish 0 for years
+ * when they had no reading) stay in the timeline as published but take no
+ * part in segmenting, means or deviations, so they cannot drag the average.
  */
 function buildTimeline(readings: { date: unknown, value: unknown }[], options: InputJSON['options']): Timeline {
-  const missing = new Set(options.missing_values ?? []);
+  const excluded = new Set(options.excluded_from_mean ?? []);
   const threshold = options.level_jump_threshold ?? Infinity;
 
   const segments: { month: string, value: number }[][] = [];
+  const excludedByMonth = new Map<string, number>();
   let previous: number | undefined;
   for (const { date, value } of readings) {
     const number = typeof value === 'number' ? value : Number.parseFloat(String(value));
-    if (typeof date !== 'string' || Number.isNaN(number) || missing.has(number)) {
+    if (typeof date !== 'string' || Number.isNaN(number)) {
+      continue;
+    }
+    if (excluded.has(number)) {
+      excludedByMonth.set(date.slice(0, 7), number);
       continue;
     }
     if (previous === undefined || Math.abs(number - previous) > threshold) {
@@ -348,7 +358,12 @@ function buildTimeline(readings: { date: unknown, value: unknown }[], options: I
       timeline[month] = [Math.round(level * 10) / 10, deviation];
     }
   }
-  return timeline;
+
+  // Months with nothing but excluded readings still show what was published.
+  for (const [month, value] of excludedByMonth) {
+    timeline[month] ??= [value, null];
+  }
+  return Object.fromEntries(Object.entries(timeline).sort(([a], [b]) => a.localeCompare(b)));
 }
 
 /**

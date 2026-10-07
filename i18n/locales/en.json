@@ -17,5 +17,6 @@
   "levelInMonth": "Level {month}",
   "longTermMean": "Long-term mean for {month}",
   "deviation": "Deviation",
-  "notEnoughHistory": "Too little history"
+  "notEnoughHistory": "Too little history",
+  "notCompared": "Not compared"
 }

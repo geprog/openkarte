@@ -143,7 +143,7 @@
       "type": "geo",
       "value_group": "wasserstand",
       "date_field": "Zeit[MEZ]",
-      "missing_values": [0],
+      "excluded_from_mean": [0],
       "level_jump_threshold": 200,
       "display_option": "line chart",
       "chart_name": "WK_NAME",

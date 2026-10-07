@@ -17,5 +17,6 @@
   "levelInMonth": "Wasserstand {month}",
   "longTermMean": "Langjähriges Mittel im {month}",
   "deviation": "Abweichung",
-  "notEnoughHistory": "Zu wenig Vergleichsdaten"
+  "notEnoughHistory": "Zu wenig Vergleichsdaten",
+  "notCompared": "Nicht verglichen"
 }

@@ -27,7 +27,7 @@
           {{ t('longTermMean', { month: selectedStats.calendarMonthName }) }}
         </dt>
         <dd class="font-semibold">
-          {{ selectedStats.mean ?? t('notEnoughHistory') }}
+          {{ selectedStats.mean ?? (selectedStats.excluded ? t('notCompared') : t('notEnoughHistory')) }}
         </dd>
       </div>
       <div>
@@ -150,6 +150,8 @@ const selectedStats = computed(() => {
   const divisor = options.y_axis_divisor ?? 1;
   const date = new Date(toTimestamp(month));
   return {
+    // e.g. a gauge's placeholder zeros, which are shown but never compared
+    excluded: (options.excluded_from_mean ?? []).includes(level),
     monthName: date.toLocaleDateString(locale.value, { month: 'long', year: 'numeric', timeZone: 'UTC' }),
     calendarMonthName: date.toLocaleDateString(locale.value, { month: 'long', timeZone: 'UTC' }),
     level: formatNumber(level / divisor, options.y_axis_unit, { fractionDigits: 2 }),

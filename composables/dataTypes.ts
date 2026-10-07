@@ -28,8 +28,8 @@ export interface Options {
   legend_title?: string
   /** Column holding the timestamp of each reading of a `value_group` series. */
   date_field?: string
-  /** Readings a publisher uses as placeholders for "no reading". */
-  missing_values?: number[]
+  /** Readings shown as published but left out of means and deviations. */
+  excluded_from_mean?: number[]
   /** Jump between neighbouring readings that marks a moved zero point. */
   level_jump_threshold?: number
 }
