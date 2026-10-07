@@ -1,0 +1,9 @@
+# pnpm 12 refuses to install when a dependency ships a build script that is
+# neither allowed nor denied here. These were skipped silently under pnpm 10
+# and both work without their scripts (esbuild resolves its binary through the
+# platform package, vue-demi defaults to Vue 3).
+allowBuilds:
+  esbuild: false
+  vue-demi: false
+
+saveExact: true
