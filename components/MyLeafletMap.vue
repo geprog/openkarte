@@ -77,57 +77,23 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
   const key = labelKey ?? 'default';
   const legendDetail = (data.features[0]?.properties?.options?.legend_details || []) as LegendDetails[];
 
-  const rawValues = data.features.map(f => findValueByKey(f, key));
-
-  const uniqueValues = Array.from(
-    new Set(rawValues.map(v => v === undefined ? undefined : String(v))),
-  );
-
   if (legendDisplayOption[0] === 'default') {
+    const uniqueValues = new Set(data.features.map(f => findValueByKey(f, key)).filter(v => v !== undefined).map(String));
     uniqueValues.forEach((value) => {
-      if (value === undefined)
-        return;
-
       const match = legendDetail.find(
-        (item: LegendDetails) => item.label.toLowerCase() === String(value).toLowerCase(),
+        (item: LegendDetails) => item.label.toLowerCase() === value.toLowerCase(),
       );
 
       if (match?.color) {
         colorMap.set(value, match.color);
       }
     });
-
-    legend.onAdd = function () {
-      const div = L.DomUtil.create('div', 'info legend');
-      div.setAttribute(
-        'style',
-        'background: white; padding: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);',
-      );
-
-      legendDetail.forEach(({ label, color }) => {
-        if (uniqueValues.includes(label)) {
-          div.innerHTML += `
-          <div style="color:black; margin-bottom:4px;">
-            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
-          </div>`;
-        }
-      });
-      if (uniqueValues.includes(undefined)) {
-        div.innerHTML += `
-          <div style="color:black; margin-bottom:4px;">
-            <i style="${NO_VALUE_SWATCH_STYLE}"></i> ${t('notDefined')}
-          </div>`;
-      }
-
-      return div;
-    };
   }
   else if (legendDisplayOption[0] === 'ranges') {
     // Fixed bounds from the layer config, so a class keeps its color across all
     // snapshots of a series instead of being re-binned per snapshot.
     legendDetail.forEach(({ label, color }) => colorMap.set(label, color));
 
-    const usedLabels = new Set<string | undefined>();
     data.features.forEach((feature) => {
       const raw = findValueByKey(feature.properties, key);
       // Values may carry a unit or a decimal comma, e.g. "3000 kW" or "4,2".
@@ -139,9 +105,13 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
         feature.properties = {};
       }
       feature.properties.__binLabel = label;
-      usedLabels.add(label);
     });
+  }
 
+  // Every configured class is listed, whether or not the current data uses it,
+  // so the legend keeps its size and order while a slider changes the data.
+  const legendTitle: string | undefined = data.features[0]?.properties?.options?.legend_title;
+  if (legendDetail.length > 0) {
     legend.onAdd = function () {
       const div = L.DomUtil.create('div', 'info legend');
       div.setAttribute(
@@ -149,34 +119,23 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
         'background: white; padding: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);',
       );
 
+      if (legendTitle) {
+        const title = L.DomUtil.create('div', '', div);
+        title.setAttribute('style', 'color:black; font-weight:600; max-width:180px; margin-bottom:6px;');
+        title.textContent = legendTitle;
+      }
+
       legendDetail.forEach(({ label, color }) => {
-        if (usedLabels.has(label)) {
-          div.innerHTML += `
+        div.innerHTML += `
           <div style="color:black; margin-bottom:4px;">
             <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
           </div>`;
-        }
       });
-      if (usedLabels.has(undefined)) {
-        div.innerHTML += `
+      div.innerHTML += `
           <div style="color:black; margin-bottom:4px;">
             <i style="${NO_VALUE_SWATCH_STYLE}"></i> ${t('notDefined')}
           </div>`;
-      }
 
-      return div;
-    };
-  }
-
-  const legendTitle: string | undefined = data.features[0]?.properties?.options?.legend_title;
-  const renderEntries = legend.onAdd;
-  if (legendTitle && renderEntries) {
-    legend.onAdd = (map) => {
-      const div = renderEntries.call(legend, map);
-      const title = L.DomUtil.create('div');
-      title.setAttribute('style', 'color:black; font-weight:600; max-width:180px; margin-bottom:6px;');
-      title.textContent = legendTitle;
-      div.prepend(title);
       return div;
     };
   }
