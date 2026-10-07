@@ -161,75 +161,6 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
       return div;
     };
   }
-  else if (legendDisplayOption[0] === 'colorVarient') {
-    const numericValues: number[] = uniqueValues
-      .filter(v => v !== undefined)
-      .map(v => +v)
-      .filter(v => !Number.isNaN(v));
-
-    const bins: [number, number][] = [];
-    if (numericValues.length > 0) {
-      const min = Math.min(...numericValues);
-      const max = Math.max(...numericValues);
-
-      const numBins = 5;
-      const step = (max - min) / numBins;
-
-      for (let i = 0; i < numBins; i++) {
-        const start = min + i * step;
-        const end = i === numBins - 1 ? max : start + step;
-        bins.push([start, end]);
-      }
-    }
-
-    function getBinLabel(value: number): string {
-      for (const [start, end] of bins) {
-        if (value >= start && value <= end)
-          return `${start.toFixed(1)} - ${end.toFixed(1)}`;
-      }
-      return 'default';
-    }
-
-    bins.forEach(([start, end], i) => {
-      const label = `${start.toFixed(1)} - ${end.toFixed(1)}`;
-      colorMap.set(label, generateColor(i, bins.length));
-    });
-
-    legend.onAdd = function () {
-      const div = L.DomUtil.create('div', 'info legend');
-      div.setAttribute(
-        'style',
-        'background: white; padding: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);',
-      );
-
-      bins.forEach(([start, end]) => {
-        const label = `${start.toFixed(1)} - ${end.toFixed(1)}`;
-        const color = colorMap.get(label);
-        div.innerHTML += `
-          <div style="color:black; margin-bottom:4px;">
-            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
-          </div>`;
-      });
-
-      if (uniqueValues.includes(undefined)) {
-        div.innerHTML += `
-          <div style="color:black; margin-bottom:4px;">
-            <i style="background:${NO_VALUE_COLOR}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${t('notDefined')}
-          </div>`;
-      }
-
-      return div;
-    };
-
-    data.features.forEach((feature) => {
-      const key = labelKey ?? 'default';
-      const val = +(findValueByKey(feature, key) ?? 0);
-      if (!feature.properties) {
-        feature.properties = {};
-      }
-      feature.properties.__binLabel = getBinLabel(val);
-    });
-  }
 
   if (leafletMap && legend.onAdd) {
     legend.addTo(leafletMap);
@@ -237,17 +168,6 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
   }
 
   return colorMap;
-}
-
-function generateColor(index: number, total: number): string {
-  const allowedRanges = [
-    { start: 30, end: 330 },
-  ];
-
-  const range = allowedRanges[0]!;
-  const hue = range.start + (index * (range.end - range.start)) / total;
-
-  return `hsl(${hue}, 70%, 40%)`;
 }
 
 function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
@@ -280,7 +200,7 @@ function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
       }
     }
 
-    if (legendOption === 'colorVarient' || legendOption === 'ranges') {
+    if (legendOption === 'ranges') {
       key = feature.properties?.__binLabel;
     }
 

@@ -19,7 +19,7 @@ const ALLOWED_HOSTS = [
   'hsi-sh.de',
 ];
 
-export interface FetchedData { id: string, childId?: string, date?: string, data: Record<string, string>[] | GeoJSON.FeatureCollection }
+export interface FetchedData { id: string, date?: string, data: Record<string, string>[] | GeoJSON.FeatureCollection }
 
 export type LayerFeatureCollection = GeoJSON.FeatureCollection & { date?: string, options?: InputJSON['options'] };
 
@@ -87,7 +87,7 @@ export async function fetchSeriesData(s: Relationship, dataset: Dataset): Promis
       const resource = res.result.resources.find(res => isFormat(res, 'CSV'))?.url;
       if (resource) {
         const publishedDate = res.result.extras.find(m => m.key === 'issued')?.value || '';
-        return { id: dataset.id, childId: s.__extras.subject_package_id, date: publishedDate, data: await fetchAndParseCsv(resource, dataset) };
+        return { id: dataset.id, date: publishedDate, data: await fetchAndParseCsv(resource, dataset) };
       }
     }
   }
@@ -203,9 +203,6 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
               if (!mergedRow.properties.match) {
                 mergedRow.properties.match = [];
               }
-              if (!mergedRow?.properties.average) {
-                mergedRow.properties.average = 0;
-              }
               const baseValue = getValue(baseRow.properties, m.source_db_field)?.toString().toLowerCase();
               if (baseValue && baseValue.includes(m.target_db_field.toLowerCase())) {
                 const values = targetRows.map((d) => {
@@ -246,12 +243,9 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
       });
 
       // Always return as FeatureCollection
-      const id = source.childId ? [source.id, source.childId].join('/') : source.id;
-      const features = merged.map((row) => {
-        const latitudeField = typeof datasets.options.latitude_field === 'string' ? datasets.options.latitude_field : (datasets.options.latitude_field ? datasets.options.latitude_field[id] || datasets.options.latitude_field[source.id] : undefined);
-        const longitudeField = typeof datasets.options.longitude_field === 'string' ? datasets.options.longitude_field : (datasets.options.longitude_field ? datasets.options.longitude_field[id] || datasets.options.longitude_field[source.id] : undefined);
-        return isGeoJSON(row) ? row : csvToGeoJSONFromRow(row, latitudeField, longitudeField);
-      }).filter(feature => feature !== null);
+      const features = merged
+        .map(row => isGeoJSON(row) ? row : csvToGeoJSONFromRow(row, datasets.options.latitude_field, datasets.options.longitude_field))
+        .filter(feature => feature !== null);
       // The options go out once per collection rather than once per feature: a
       // series like the wind turbines has ~80k features, and the copies made up
       // five sixths of the response. The client attaches them to the features.
@@ -267,10 +261,7 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
       };
 
       if (datasets.options.crs) {
-        const crs = typeof datasets.options.crs === 'string' ? datasets.options.crs : (datasets.options.crs[id] || datasets.options.crs[source.id]);
-        if (crs) {
-          return reprojectGeoJSON(featureCollection, crs) as LayerFeatureCollection;
-        }
+        return reprojectGeoJSON(featureCollection, datasets.options.crs) as LayerFeatureCollection;
       }
       return featureCollection;
     });
@@ -288,10 +279,10 @@ function getValue(obj: any, field: string) {
   return field.split('.').reduce((acc, key) => acc?.[key], obj);
 }
 
-function calculateMean(values: number[]): number {
+function calculateMean(values: number[]): number | undefined {
   const numbers = values.map(v => typeof v === 'string' ? Number.parseFloat(v) : v).filter(v => typeof v === 'number' && !Number.isNaN(v));
   if (numbers.length === 0) {
-    return 0;
+    return undefined;
   }
   const sum = numbers.reduce((acc, val) => acc + val, 0);
   return sum / numbers.length;
@@ -548,23 +539,4 @@ function normalizePoint([x, y]: [number, number]): [number, number] {
 
 function isInsideGermany([lon, lat]: [number, number]) {
   return lon >= 5.9 && lon <= 15.0 && lat >= 47.2 && lat <= 55.1;
-}
-
-export async function normalizeFeatures(featureCollection: GeoJSON.FeatureCollection) {
-  const cleanedFeatures = featureCollection.features
-    .map((feature) => {
-      if (feature.geometry.type === 'Point') {
-        const coords = normalizePoint(feature.geometry.coordinates as [number, number]);
-        return { ...feature, geometry: { ...feature.geometry, coordinates: coords } };
-      }
-      return feature;
-    })
-    .filter((feature) => {
-      if (feature.geometry.type === 'Point') {
-        return isInsideGermany(feature.geometry.coordinates as [number, number]);
-      }
-      return true;
-    });
-
-  return { ...featureCollection, features: cleanedFeatures };
 }

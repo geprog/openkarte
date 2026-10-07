@@ -103,7 +103,14 @@
   "options":
     {
       "label_option": "average",
-      "legend_option": "colorVarient",
+      "legend_option": "ranges",
+      "legend_details": [
+        { "label": "< 2 m", "color": "#86b6ef", "max": 200 },
+        { "label": "2 – 10 m", "color": "#3987e5", "min": 200, "max": 1000 },
+        { "label": "10 – 20 m", "color": "#256abf", "min": 1000, "max": 2000 },
+        { "label": "20 – 30 m", "color": "#184f95", "min": 2000, "max": 3000 },
+        { "label": "≥ 30 m", "color": "#0d366b", "min": 3000 }
+      ],
       "type": "geo",
       "value_group": "wasserstand",
       "display_option": "line chart",
