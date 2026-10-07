@@ -9,6 +9,17 @@ export interface Dataset {
   resource_id: string
   title: string
   headers?: string[]
+  /** Overrides for CSV resources; both are auto-detected when omitted. */
+  csv?: {
+    delimiter?: string
+    quoteChar?: string
+  }
+  /**
+   * Renames CSV columns, matched case-insensitively, so that the snapshots of a
+   * series which spell the same column differently (`Nabenhöhe`, `NABENHOEHE`)
+   * end up with the same property name.
+   */
+  column_aliases?: Record<string, string>
 }
 
 export interface Mappings {

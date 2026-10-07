@@ -5,10 +5,6 @@ export interface DateGroup {
   color: string
 }
 
-export interface DateOptions {
-  [key: number]: string
-}
-
 export interface DataEntry {
   [key: string]: string | number
 }
@@ -21,15 +17,20 @@ export interface MapDisplayOptions {
 export interface LegendDetails {
   label: string
   color: string
+  /** Inclusive lower bound of a `ranges` legend entry; open-ended when omitted. */
+  min?: number
+  /** Exclusive upper bound of a `ranges` legend entry; open-ended when omitted. */
+  max?: number
 }
 
 export interface Options {
   label_option: string
-  legend_option: 'default' | 'colorVariant'
+  legend_option: 'default' | 'colorVariant' | 'ranges'
   type: string
   value_group: string
-  coordinate_field_x?: string
-  coordinate_field_y?: string
+  crs?: string | Record<string, string>
+  latitude_field?: string | Record<string, string>
+  longitude_field?: string | Record<string, string>
   display_option: 'popup' | 'line chart'
   popup_name?: string
   popup_details?: { label: string, prop: string | string[] }[]

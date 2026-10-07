@@ -35,13 +35,19 @@ function findValueByKey(obj: unknown, key: string): string | number | undefined 
     return undefined;
 
   const record = obj as Record<string, unknown>;
+  const targetKey = key.toLowerCase();
 
-  if (key in record) {
-    const value = record[key];
-    if (typeof value === 'string' || typeof value === 'number')
-      return value;
+  // Case-insensitive key lookup
+  for (const k of Object.keys(record)) {
+    if (k.toLowerCase() === targetKey) {
+      const value = record[k];
+      if (typeof value === 'string' || typeof value === 'number') {
+        return value;
+      }
+    }
   }
 
+  // Recursively search nested objects
   for (const value of Object.values(record)) {
     const result = findValueByKey(value, key);
     if (result !== undefined)
@@ -73,10 +79,13 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
 
   if (legendDisplayOption[0] === 'default') {
     uniqueValues.forEach((value) => {
-      if (value === undefined) {
+      if (value === undefined)
         return;
-      }
-      const match = legendDetail.find((item: LegendDetails) => item.label === value);
+
+      const match = legendDetail.find(
+        (item: LegendDetails) => item.label.toLowerCase() === String(value).toLowerCase(),
+      );
+
       if (match?.color) {
         colorMap.set(value, match.color);
       }
@@ -98,6 +107,51 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
         }
       });
       if (uniqueValues.includes(undefined)) {
+        div.innerHTML += `
+          <div style="color:black; margin-bottom:4px;">
+            <i style="background:${NO_VALUE_COLOR}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${t('notDefined')}
+          </div>`;
+      }
+
+      return div;
+    };
+  }
+  else if (legendDisplayOption[0] === 'ranges') {
+    // Fixed bounds from the layer config, so a class keeps its color across all
+    // snapshots of a series instead of being re-binned per snapshot.
+    legendDetail.forEach(({ label, color }) => colorMap.set(label, color));
+
+    const usedLabels = new Set<string | undefined>();
+    data.features.forEach((feature) => {
+      const raw = findValueByKey(feature.properties, key);
+      // Values may carry a unit or a decimal comma, e.g. "3000 kW" or "4,2".
+      const value = Number.parseFloat(String(raw ?? '').replace(',', '.'));
+      const label = Number.isNaN(value)
+        ? undefined
+        : legendDetail.find(({ min, max }) => (min === undefined || value >= min) && (max === undefined || value < max))?.label;
+      if (!feature.properties) {
+        feature.properties = {};
+      }
+      feature.properties.__binLabel = label;
+      usedLabels.add(label);
+    });
+
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'info legend');
+      div.setAttribute(
+        'style',
+        'background: white; padding: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);',
+      );
+
+      legendDetail.forEach(({ label, color }) => {
+        if (usedLabels.has(label)) {
+          div.innerHTML += `
+          <div style="color:black; margin-bottom:4px;">
+            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
+          </div>`;
+        }
+      });
+      if (usedLabels.has(undefined)) {
         div.innerHTML += `
           <div style="color:black; margin-bottom:4px;">
             <i style="background:${NO_VALUE_COLOR}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${t('notDefined')}
@@ -177,7 +231,7 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
     });
   }
 
-  if (leafletMap) {
+  if (leafletMap && legend.onAdd) {
     legend.addTo(leafletMap);
     legendControl = legend;
   }
@@ -209,9 +263,24 @@ function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
   data.features.forEach((feature) => {
     const legendOption = feature.properties?.options?.legend_option;
     const labelOption = feature.properties?.options?.label_option;
-    let key = labelOption ? feature.properties?.[labelOption] : undefined;
+    let key: string = 'default';
 
-    if (legendOption === 'colorVarient') {
+    if (labelOption && feature.properties) {
+      const normalizedKey = Object.keys(feature.properties).find(
+        k => k.toLowerCase() === labelOption.toLowerCase(),
+      );
+      if (normalizedKey) {
+        const value = feature.properties[normalizedKey];
+        if (typeof value === 'string') {
+          key = value.trim();
+        }
+        else {
+          key = value;
+        }
+      }
+    }
+
+    if (legendOption === 'colorVarient' || legendOption === 'ranges') {
       key = feature.properties?.__binLabel;
     }
 
@@ -264,6 +333,10 @@ function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
     geoJsonLayer.addTo(leafletMap as L.Map);
     geoJsonLayers.push(geoJsonLayer);
   });
+  const bounds = new L.LatLngBounds(geoJsonLayers.map(layer => [layer.getBounds().getNorthEast(), layer.getBounds().getSouthWest()]).flat());
+  if (bounds.isValid()) {
+    leafletMap?.fitBounds(bounds, { padding: [50, 50] });
+  }
 }
 
 function resetSelectedMarker() {
