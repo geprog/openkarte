@@ -13,5 +13,9 @@
   "datasetUrl": "Datensatz-URL",
   "name": "Name",
   "seriesDatasets": "Serien-Datensätze",
-  "notDefined": "Nicht definiert"
+  "notDefined": "Nicht definiert",
+  "levelInMonth": "Wasserstand {month}",
+  "longTermMean": "Langjähriges Mittel im {month}",
+  "deviation": "Abweichung",
+  "notEnoughHistory": "Zu wenig Vergleichsdaten"
 }

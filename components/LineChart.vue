@@ -8,7 +8,39 @@
       &times;
     </button>
 
-    <div class="w-full" style="height: 300px; max-height: 50vh;">
+    <p class="pr-8 text-lg font-bold text-center">
+      {{ chartTitle }}
+    </p>
+
+    <!-- What the lake's color on the map is based on, for the selected month -->
+    <dl v-if="selectedStats" class="mt-2 grid grid-cols-3 gap-2 text-center text-sm">
+      <div>
+        <dt class="text-gray-500 dark:text-gray-400">
+          {{ t('levelInMonth', { month: selectedStats.monthName }) }}
+        </dt>
+        <dd class="font-semibold">
+          {{ selectedStats.level }}
+        </dd>
+      </div>
+      <div>
+        <dt class="text-gray-500 dark:text-gray-400">
+          {{ t('longTermMean', { month: selectedStats.calendarMonthName }) }}
+        </dt>
+        <dd class="font-semibold">
+          {{ selectedStats.mean ?? t('notEnoughHistory') }}
+        </dd>
+      </div>
+      <div>
+        <dt class="text-gray-500 dark:text-gray-400">
+          {{ t('deviation') }}
+        </dt>
+        <dd class="font-semibold">
+          {{ selectedStats.deviation ?? '–' }}
+        </dd>
+      </div>
+    </dl>
+
+    <div class="w-full mt-2" style="height: 300px; max-height: 50vh;">
       <Line :data="data" :options="options" />
     </div>
   </div>
@@ -94,7 +126,37 @@ const selectedPoint = computed(() => {
   return points.value.filter(p => p.x === x);
 });
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+
+function formatNumber(value: number, unit: string | undefined, { fractionDigits = 0, signed = false } = {}): string {
+  const number = value.toLocaleString(locale.value, {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+    signDisplay: signed ? 'exceptZero' : 'auto',
+  });
+  return unit ? `${number} ${unit}` : number;
+}
+
+// Level, long-term mean of the same calendar month and the deviation between
+// them, i.e. the numbers behind the lake's color for the selected month.
+const selectedStats = computed(() => {
+  const month = props.selectedDate;
+  const entry: [number, number | null] | undefined = month ? properties.value.timeline?.[month] : undefined;
+  if (!month || !entry) {
+    return undefined;
+  }
+  const [level, deviation] = entry;
+  const options = properties.value.options;
+  const divisor = options.y_axis_divisor ?? 1;
+  const date = new Date(toTimestamp(month));
+  return {
+    monthName: date.toLocaleDateString(locale.value, { month: 'long', year: 'numeric', timeZone: 'UTC' }),
+    calendarMonthName: date.toLocaleDateString(locale.value, { month: 'long', timeZone: 'UTC' }),
+    level: formatNumber(level / divisor, options.y_axis_unit, { fractionDigits: 2 }),
+    mean: deviation === null ? undefined : formatNumber((level - deviation) / divisor, options.y_axis_unit, { fractionDigits: 2 }),
+    deviation: deviation === null ? undefined : formatNumber(deviation, options.value_unit, { signed: true }),
+  };
+});
 
 const data = computed(() => ({
   datasets: [
@@ -125,14 +187,6 @@ const options = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-    title: {
-      display: true,
-      text: chartTitle.value,
-      font: {
-        size: 18,
-        weight: 'bold' as const,
-      },
-    },
     tooltip: {
       callbacks: {
         title: items => items[0] ? formatDate(items[0].parsed.x!) : '',

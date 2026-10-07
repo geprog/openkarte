@@ -13,5 +13,9 @@
   "datasetUrl": "Dataset url",
   "name": "Name",
   "seriesDatasets": "Series Datasets",
-  "notDefined": "Not defined"
+  "notDefined": "Not defined",
+  "levelInMonth": "Level {month}",
+  "longTermMean": "Long-term mean for {month}",
+  "deviation": "Deviation",
+  "notEnoughHistory": "Too little history"
 }

@@ -150,6 +150,8 @@
       "chart_legend": "Pegelstand im Zeitverlauf",
       "x_axis_label": "Datum",
       "y_axis_label": "Pegelstand (m)",
-      "y_axis_divisor": 100
+      "y_axis_divisor": 100,
+      "y_axis_unit": "m",
+      "value_unit": "cm"
     }
 }
