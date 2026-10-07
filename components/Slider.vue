@@ -21,7 +21,7 @@
 
     <div class="relative w-full h-5 mt-2">
       <span
-        v-for="group in groupedDates" :key="group.year" class="absolute text-sm whitespace-nowrap font-medium" :style="{
+        v-for="group in labeledGroups" :key="group.year" class="absolute text-sm whitespace-nowrap font-medium" :style="{
           left: `${parseFloat(group.offset) + parseFloat(group.width) / 2}%`,
           transform: 'translateX(-50%)',
           fontSize: isSmallScreen ? '0.50rem' : '1rem',
@@ -56,6 +56,15 @@ const selectedDate = computed(() => {
 
 const groupedDates = computed(() => {
   return getDatesGroups(props.dateOptions);
+});
+
+const MAX_YEAR_LABELS = 10;
+
+// Decades of monthly data have more years than fit as labels; label every
+// n-th year instead, on round years.
+const labeledGroups = computed(() => {
+  const step = Math.ceil(groupedDates.value.length / MAX_YEAR_LABELS);
+  return step > 1 ? groupedDates.value.filter(g => Number(g.year) % step === 0) : groupedDates.value;
 });
 
 const { t } = useI18n();

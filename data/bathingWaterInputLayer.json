@@ -107,6 +107,7 @@
     {
       "label_option": "EINSTUFUNG_ODER_VORABBEWERTUNG",
       "legend_option": "default",
+      "legend_title": "Einstufung der Badegewässerqualität",
       "legend_details": [
         { "label": "ausgezeichnet (Überprüfung nur bei Änderung der Einstufung)", "color": "#10B981" },
         { "label": "gut (Überprüfung mindestens alle vier Jahre)", "color": "#0D9488" },

@@ -19,9 +19,14 @@ const ALLOWED_HOSTS = [
   'hsi-sh.de',
 ];
 
-export interface FetchedData { id: string, childId?: string, date?: string, data: Record<string, string>[] | GeoJSON.FeatureCollection }
+export interface FetchedData { id: string, date?: string, data: Record<string, string>[] | GeoJSON.FeatureCollection }
 
-export type LayerFeatureCollection = GeoJSON.FeatureCollection & { date?: string, options?: InputJSON['options'] };
+/**
+ * `dates` is set for layers whose features carry a monthly `timeline` instead
+ * of being published as one collection per snapshot; the slider steps through
+ * these months.
+ */
+export type LayerFeatureCollection = GeoJSON.FeatureCollection & { date?: string, dates?: string[], options?: InputJSON['options'] };
 
 export type FetchedDataArray = LayerFeatureCollection[];
 
@@ -87,7 +92,7 @@ export async function fetchSeriesData(s: Relationship, dataset: Dataset): Promis
       const resource = res.result.resources.find(res => isFormat(res, 'CSV'))?.url;
       if (resource) {
         const publishedDate = res.result.extras.find(m => m.key === 'issued')?.value || '';
-        return { id: dataset.id, childId: s.__extras.subject_package_id, date: publishedDate, data: await fetchAndParseCsv(resource, dataset) };
+        return { id: dataset.id, date: publishedDate, data: await fetchAndParseCsv(resource, dataset) };
       }
     }
   }
@@ -200,19 +205,13 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
               if (!mergedRow.properties) {
                 mergedRow.properties = {};
               }
-              if (!mergedRow.properties.match) {
-                mergedRow.properties.match = [];
-              }
-              if (!mergedRow?.properties.average) {
-                mergedRow.properties.average = 0;
-              }
               const baseValue = getValue(baseRow.properties, m.source_db_field)?.toString().toLowerCase();
               if (baseValue && baseValue.includes(m.target_db_field.toLowerCase())) {
-                const values = targetRows.map((d) => {
-                  return isGeoJSON(d) ? (d.properties || {})[datasets.options.value_group] : d[datasets.options.value_group];
+                const readings = targetRows.map((d) => {
+                  const row = isGeoJSON(d) ? (d.properties || {}) : d;
+                  return { date: row[datasets.options.date_field ?? ''], value: row[datasets.options.value_group] };
                 });
-                mergedRow.properties.match.push(targetDataset.data);
-                mergedRow.properties.average = calculateMean(values);
+                mergedRow.properties.timeline = buildTimeline(readings, datasets.options);
               }
             }
           }
@@ -246,19 +245,20 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
       });
 
       // Always return as FeatureCollection
-      const id = source.childId ? [source.id, source.childId].join('/') : source.id;
-      const features = merged.map((row) => {
-        const latitudeField = typeof datasets.options.latitude_field === 'string' ? datasets.options.latitude_field : (datasets.options.latitude_field ? datasets.options.latitude_field[id] || datasets.options.latitude_field[source.id] : undefined);
-        const longitudeField = typeof datasets.options.longitude_field === 'string' ? datasets.options.longitude_field : (datasets.options.longitude_field ? datasets.options.longitude_field[id] || datasets.options.longitude_field[source.id] : undefined);
-        return isGeoJSON(row) ? row : csvToGeoJSONFromRow(row, latitudeField, longitudeField);
-      }).filter(feature => feature !== null);
+      const features = merged
+        .map(row => isGeoJSON(row) ? row : csvToGeoJSONFromRow(row, datasets.options.latitude_field, datasets.options.longitude_field))
+        .filter(feature => feature !== null);
       // The options go out once per collection rather than once per feature: a
       // series like the wind turbines has ~80k features, and the copies made up
       // five sixths of the response. The client attaches them to the features.
+      const timelineMonths = features.flatMap(f => Object.keys(f.properties?.timeline ?? {}));
       const featureCollection: LayerFeatureCollection = {
         type: 'FeatureCollection',
         features,
         options: datasets.options,
+        ...(timelineMonths.length > 0 && {
+          dates: [...new Set(timelineMonths)].sort(),
+        }),
         ...(source.date && {
           // `issued` is a local timestamp; going through `Date` would shift it
           // to the previous day in UTC.
@@ -267,10 +267,7 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
       };
 
       if (datasets.options.crs) {
-        const crs = typeof datasets.options.crs === 'string' ? datasets.options.crs : (datasets.options.crs[id] || datasets.options.crs[source.id]);
-        if (crs) {
-          return reprojectGeoJSON(featureCollection, crs) as LayerFeatureCollection;
-        }
+        return reprojectGeoJSON(featureCollection, datasets.options.crs) as LayerFeatureCollection;
       }
       return featureCollection;
     });
@@ -288,13 +285,85 @@ function getValue(obj: any, field: string) {
   return field.split('.').reduce((acc, key) => acc?.[key], obj);
 }
 
-function calculateMean(values: number[]): number {
-  const numbers = values.map(v => typeof v === 'string' ? Number.parseFloat(v) : v).filter(v => typeof v === 'number' && !Number.isNaN(v));
-  if (numbers.length === 0) {
-    return 0;
+/** Calendar months a segment needs data for before it gets an average. */
+const MIN_YEARS_PER_CALENDAR_MONTH = 3;
+
+/**
+ * Month → [mean level, deviation from that calendar month's long-term mean].
+ * The deviation is null when there is too little history to compare against,
+ * or when the month only has readings listed in `excluded_from_mean`.
+ */
+export type Timeline = Record<string, [number, number | null]>;
+
+/**
+ * Condenses a gauge's readings to monthly means and compares each month with
+ * the long-term mean of the same calendar month, so seasonal swings do not
+ * show up as anomalies.
+ *
+ * Gauges measure from a zero point (Pegelnullpunkt) that gets moved from time
+ * to time, which shifts every later reading by metres. Readings are therefore
+ * split into segments wherever two neighbours differ by more than
+ * `level_jump_threshold`, and each segment is compared only with itself.
+ *
+ * Readings listed in `excluded_from_mean` (gauges that publish 0 for years
+ * when they had no reading) stay in the timeline as published but take no
+ * part in segmenting, means or deviations, so they cannot drag the average.
+ */
+function buildTimeline(readings: { date: unknown, value: unknown }[], options: InputJSON['options']): Timeline {
+  const excluded = new Set(options.excluded_from_mean ?? []);
+  const threshold = options.level_jump_threshold ?? Infinity;
+
+  const segments: { month: string, value: number }[][] = [];
+  const excludedByMonth = new Map<string, number>();
+  let previous: number | undefined;
+  for (const { date, value } of readings) {
+    const number = typeof value === 'number' ? value : Number.parseFloat(String(value));
+    if (typeof date !== 'string' || Number.isNaN(number)) {
+      continue;
+    }
+    if (excluded.has(number)) {
+      excludedByMonth.set(date.slice(0, 7), number);
+      continue;
+    }
+    if (previous === undefined || Math.abs(number - previous) > threshold) {
+      segments.push([]);
+    }
+    segments.at(-1)!.push({ month: date.slice(0, 7), value: number });
+    previous = number;
   }
-  const sum = numbers.reduce((acc, val) => acc + val, 0);
-  return sum / numbers.length;
+
+  const timeline: Timeline = {};
+  for (const segment of segments) {
+    const sums = new Map<string, { sum: number, count: number }>();
+    for (const { month, value } of segment) {
+      const entry = sums.get(month) ?? { sum: 0, count: 0 };
+      entry.sum += value;
+      entry.count++;
+      sums.set(month, entry);
+    }
+    const monthly = [...sums].map(([month, { sum, count }]) => ({ month, level: sum / count }));
+
+    const byCalendarMonth = new Map<string, number[]>();
+    for (const { month, level } of monthly) {
+      const calendarMonth = month.slice(5);
+      byCalendarMonth.set(calendarMonth, [...(byCalendarMonth.get(calendarMonth) ?? []), level]);
+    }
+
+    // A month split by a zero point change is listed by the later segment.
+    for (const { month, level } of monthly) {
+      const sameMonth = byCalendarMonth.get(month.slice(5))!;
+      const deviation = sameMonth.length >= MIN_YEARS_PER_CALENDAR_MONTH
+        ? Math.round(level - sameMonth.reduce((a, b) => a + b, 0) / sameMonth.length)
+        : null;
+      timeline[month] = [Math.round(level * 10) / 10, deviation];
+    }
+  }
+
+  // Months with nothing but excluded readings still show what was published.
+  for (const [month, value] of excludedByMonth) {
+    timeline[month] ??= [value, null];
+  }
+  return Object.fromEntries(Object.entries(timeline).sort(([a], [b]) => a.localeCompare(b)));
 }
 
 /**
@@ -548,23 +617,4 @@ function normalizePoint([x, y]: [number, number]): [number, number] {
 
 function isInsideGermany([lon, lat]: [number, number]) {
   return lon >= 5.9 && lon <= 15.0 && lat >= 47.2 && lat <= 55.1;
-}
-
-export async function normalizeFeatures(featureCollection: GeoJSON.FeatureCollection) {
-  const cleanedFeatures = featureCollection.features
-    .map((feature) => {
-      if (feature.geometry.type === 'Point') {
-        const coords = normalizePoint(feature.geometry.coordinates as [number, number]);
-        return { ...feature, geometry: { ...feature.geometry, coordinates: coords } };
-      }
-      return feature;
-    })
-    .filter((feature) => {
-      if (feature.geometry.type === 'Point') {
-        return isInsideGermany(feature.geometry.coordinates as [number, number]);
-      }
-      return true;
-    });
-
-  return { ...featureCollection, features: cleanedFeatures };
 }

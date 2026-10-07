@@ -4,25 +4,34 @@
 
 <script setup lang="ts">
 import L, { Control } from 'leaflet';
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, toRaw, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 
 const props = defineProps<{
   fetchedData?: GeoJSON.FeatureCollection | null
+  // The map zooms to the data whenever this changes, i.e. when another layer
+  // is picked, but not when the slider swaps the data of the same layer.
+  layerKey?: string | null
+  // Highlighted on the map, also after the slider has swapped the data.
+  selectedFeature?: GeoJSON.Feature | null
 }>();
 
 const emit = defineEmits<{
   (e: 'marker-click', feature: GeoJSON.Feature): void
 }>();
 
-const NO_VALUE_COLOR = '#999999';
+// Features without a value are drawn as a dashed outline without fill, so
+// they cannot be mistaken for a legend class, not even a gray one.
+const NO_VALUE_COLOR = '#6b6b6b';
+const NO_VALUE_SWATCH_STYLE = `border:2px dashed ${NO_VALUE_COLOR}; box-sizing:border-box; width:12px; height:12px; display:inline-block; margin-right:4px;`;
 
 const { t } = useI18n();
 
-let selectedMarker: L.Layer | null = null;
+let highlightedMarker: L.CircleMarker | null = null;
 const originalMarkerStyleMap = new Map<L.Layer, L.PathOptions>();
+const layerByFeature = new Map<GeoJSON.Feature, L.Layer>();
 let legendControl: L.Control | null = null;
 const geoJsonLayers: L.GeoJSON[] = [];
 
@@ -71,57 +80,23 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
   const key = labelKey ?? 'default';
   const legendDetail = (data.features[0]?.properties?.options?.legend_details || []) as LegendDetails[];
 
-  const rawValues = data.features.map(f => findValueByKey(f, key));
-
-  const uniqueValues = Array.from(
-    new Set(rawValues.map(v => v === undefined ? undefined : String(v))),
-  );
-
   if (legendDisplayOption[0] === 'default') {
+    const uniqueValues = new Set(data.features.map(f => findValueByKey(f, key)).filter(v => v !== undefined).map(String));
     uniqueValues.forEach((value) => {
-      if (value === undefined)
-        return;
-
       const match = legendDetail.find(
-        (item: LegendDetails) => item.label.toLowerCase() === String(value).toLowerCase(),
+        (item: LegendDetails) => item.label.toLowerCase() === value.toLowerCase(),
       );
 
       if (match?.color) {
         colorMap.set(value, match.color);
       }
     });
-
-    legend.onAdd = function () {
-      const div = L.DomUtil.create('div', 'info legend');
-      div.setAttribute(
-        'style',
-        'background: white; padding: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);',
-      );
-
-      legendDetail.forEach(({ label, color }) => {
-        if (uniqueValues.includes(label)) {
-          div.innerHTML += `
-          <div style="color:black; margin-bottom:4px;">
-            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
-          </div>`;
-        }
-      });
-      if (uniqueValues.includes(undefined)) {
-        div.innerHTML += `
-          <div style="color:black; margin-bottom:4px;">
-            <i style="background:${NO_VALUE_COLOR}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${t('notDefined')}
-          </div>`;
-      }
-
-      return div;
-    };
   }
   else if (legendDisplayOption[0] === 'ranges') {
     // Fixed bounds from the layer config, so a class keeps its color across all
     // snapshots of a series instead of being re-binned per snapshot.
     legendDetail.forEach(({ label, color }) => colorMap.set(label, color));
 
-    const usedLabels = new Set<string | undefined>();
     data.features.forEach((feature) => {
       const raw = findValueByKey(feature.properties, key);
       // Values may carry a unit or a decimal comma, e.g. "3000 kW" or "4,2".
@@ -133,102 +108,39 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
         feature.properties = {};
       }
       feature.properties.__binLabel = label;
-      usedLabels.add(label);
     });
+  }
 
+  // Every configured class is listed, whether or not the current data uses it,
+  // so the legend keeps its size and order while a slider changes the data.
+  const legendTitle: string | undefined = data.features[0]?.properties?.options?.legend_title;
+  if (legendDetail.length > 0) {
     legend.onAdd = function () {
       const div = L.DomUtil.create('div', 'info legend');
       div.setAttribute(
         'style',
         'background: white; padding: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);',
       );
+
+      if (legendTitle) {
+        const title = L.DomUtil.create('div', '', div);
+        title.setAttribute('style', 'color:black; font-weight:600; max-width:180px; margin-bottom:6px;');
+        title.textContent = legendTitle;
+      }
 
       legendDetail.forEach(({ label, color }) => {
-        if (usedLabels.has(label)) {
-          div.innerHTML += `
-          <div style="color:black; margin-bottom:4px;">
-            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
-          </div>`;
-        }
-      });
-      if (usedLabels.has(undefined)) {
-        div.innerHTML += `
-          <div style="color:black; margin-bottom:4px;">
-            <i style="background:${NO_VALUE_COLOR}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${t('notDefined')}
-          </div>`;
-      }
-
-      return div;
-    };
-  }
-  else if (legendDisplayOption[0] === 'colorVarient') {
-    const numericValues: number[] = uniqueValues
-      .filter(v => v !== undefined)
-      .map(v => +v)
-      .filter(v => !Number.isNaN(v));
-
-    const bins: [number, number][] = [];
-    if (numericValues.length > 0) {
-      const min = Math.min(...numericValues);
-      const max = Math.max(...numericValues);
-
-      const numBins = 5;
-      const step = (max - min) / numBins;
-
-      for (let i = 0; i < numBins; i++) {
-        const start = min + i * step;
-        const end = i === numBins - 1 ? max : start + step;
-        bins.push([start, end]);
-      }
-    }
-
-    function getBinLabel(value: number): string {
-      for (const [start, end] of bins) {
-        if (value >= start && value <= end)
-          return `${start.toFixed(1)} - ${end.toFixed(1)}`;
-      }
-      return 'default';
-    }
-
-    bins.forEach(([start, end], i) => {
-      const label = `${start.toFixed(1)} - ${end.toFixed(1)}`;
-      colorMap.set(label, generateColor(i, bins.length));
-    });
-
-    legend.onAdd = function () {
-      const div = L.DomUtil.create('div', 'info legend');
-      div.setAttribute(
-        'style',
-        'background: white; padding: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);',
-      );
-
-      bins.forEach(([start, end]) => {
-        const label = `${start.toFixed(1)} - ${end.toFixed(1)}`;
-        const color = colorMap.get(label);
         div.innerHTML += `
           <div style="color:black; margin-bottom:4px;">
             <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
           </div>`;
       });
-
-      if (uniqueValues.includes(undefined)) {
-        div.innerHTML += `
+      div.innerHTML += `
           <div style="color:black; margin-bottom:4px;">
-            <i style="background:${NO_VALUE_COLOR}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${t('notDefined')}
+            <i style="${NO_VALUE_SWATCH_STYLE}"></i> ${t('notDefined')}
           </div>`;
-      }
 
       return div;
     };
-
-    data.features.forEach((feature) => {
-      const key = labelKey ?? 'default';
-      const val = +(findValueByKey(feature, key) ?? 0);
-      if (!feature.properties) {
-        feature.properties = {};
-      }
-      feature.properties.__binLabel = getBinLabel(val);
-    });
   }
 
   if (leafletMap && legend.onAdd) {
@@ -237,17 +149,6 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
   }
 
   return colorMap;
-}
-
-function generateColor(index: number, total: number): string {
-  const allowedRanges = [
-    { start: 30, end: 330 },
-  ];
-
-  const range = allowedRanges[0]!;
-  const hue = range.start + (index * (range.end - range.start)) / total;
-
-  return `hsl(${hue}, 70%, 40%)`;
 }
 
 function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
@@ -259,6 +160,8 @@ function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
 
   const colorMap = generateLabels(data);
   originalMarkerStyleMap.clear();
+  layerByFeature.clear();
+  highlightedMarker = null;
 
   data.features.forEach((feature) => {
     const legendOption = feature.properties?.options?.legend_option;
@@ -280,50 +183,28 @@ function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
       }
     }
 
-    if (legendOption === 'colorVarient' || legendOption === 'ranges') {
+    if (legendOption === 'ranges') {
       key = feature.properties?.__binLabel;
     }
 
-    const color = colorMap.get(key) ?? NO_VALUE_COLOR;
+    const color = colorMap.get(key);
 
     const geoJsonLayer = L.geoJSON(feature, {
-      style: () => ({
-        color,
-        weight: 2,
-        opacity: 1,
-        fillColor: color,
-        fillOpacity: 0.7,
-      }),
+      style: () => color
+        ? { color, weight: 2, opacity: 1, fillColor: color, fillOpacity: 0.85 }
+        : { color: NO_VALUE_COLOR, weight: 2, opacity: 1, dashArray: '4 3', fillOpacity: 0 },
       pointToLayer: (feature, latlng) => {
-        const style: L.CircleMarkerOptions = {
-          radius: 6,
-          color,
-          fillColor: color,
-          fillOpacity: 0.8,
-          weight: 1,
-        };
+        const style: L.CircleMarkerOptions = color
+          ? { radius: 6, color, fillColor: color, fillOpacity: 0.8, weight: 1 }
+          : { radius: 6, color: NO_VALUE_COLOR, fillOpacity: 0, weight: 1.5 };
 
         const marker = L.circleMarker(latlng, style);
         originalMarkerStyleMap.set(marker, style);
         return marker;
       },
       onEachFeature: (feature, layer) => {
+        layerByFeature.set(toRaw(feature), layer);
         layer.on('click', () => {
-          if (selectedMarker instanceof L.CircleMarker && originalMarkerStyleMap.has(selectedMarker)) {
-            selectedMarker.setStyle(originalMarkerStyleMap.get(selectedMarker)!);
-          }
-
-          if (layer instanceof L.CircleMarker) {
-            layer.setStyle({
-              radius: 10,
-              weight: 3,
-              color: '#0f172b',
-              fillColor: '#0f172b',
-              fillOpacity: 1,
-            });
-          }
-
-          selectedMarker = layer;
           // eslint-disable-next-line vue/custom-event-name-casing
           emit('marker-click', feature);
         });
@@ -333,16 +214,32 @@ function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
     geoJsonLayer.addTo(leafletMap as L.Map);
     geoJsonLayers.push(geoJsonLayer);
   });
+}
+
+let fittedLayerKey: string | null | undefined;
+
+function fitToData() {
   const bounds = new L.LatLngBounds(geoJsonLayers.map(layer => [layer.getBounds().getNorthEast(), layer.getBounds().getSouthWest()]).flat());
   if (bounds.isValid()) {
     leafletMap?.fitBounds(bounds, { padding: [50, 50] });
   }
 }
 
-function resetSelectedMarker() {
-  if (selectedMarker instanceof L.Path && originalMarkerStyleMap.has(selectedMarker)) {
-    selectedMarker.setStyle(originalMarkerStyleMap.get(selectedMarker)!);
-    selectedMarker = null;
+function highlightSelectedFeature() {
+  if (highlightedMarker) {
+    highlightedMarker.setStyle(originalMarkerStyleMap.get(highlightedMarker)!);
+    highlightedMarker = null;
+  }
+  const layer = props.selectedFeature ? layerByFeature.get(toRaw(props.selectedFeature)) : undefined;
+  if (layer instanceof L.CircleMarker) {
+    layer.setStyle({
+      radius: 10,
+      weight: 3,
+      color: '#0f172b',
+      fillColor: '#0f172b',
+      fillOpacity: 1,
+    });
+    highlightedMarker = layer;
   }
 }
 
@@ -361,7 +258,6 @@ function clearLegend() {
 }
 
 defineExpose({
-  resetSelectedMarker,
   invalidateMapSize,
 });
 
@@ -393,6 +289,13 @@ watch(() => props.fetchedData, (newData) => {
     clearMarkers();
     clearLegend();
     renderMarkers(newData);
+    highlightSelectedFeature();
+    if (fittedLayerKey !== props.layerKey) {
+      fitToData();
+      fittedLayerKey = props.layerKey;
+    }
   }
 }, { immediate: true });
+
+watch(() => props.selectedFeature, highlightSelectedFeature);
 </script>

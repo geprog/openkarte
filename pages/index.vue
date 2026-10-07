@@ -87,21 +87,21 @@
           <LoadingSpinner />
         </div>
 
-        <MyLeafletMap ref="leafletMapRef" class="flex-grow" :fetched-data="fetchedData" @marker-click="selectedItem = $event" />
+        <MyLeafletMap ref="leafletMapRef" class="flex-grow" :fetched-data="fetchedData" :layer-key="feature" :selected-feature="selectedItem" @marker-click="selectedItem = $event" />
         <Slider
           v-if="isDataSeries && dateOptions" v-model="selectedIndex"
           :date-options="dateOptions" :is-small-screen="isSmallScreen"
         />
         <PopupInfo
           v-if="selectedItem?.properties?.options?.display_option === 'popup'" :selected-item="selectedItem"
-          @close="selectedItem = null" @marker-reset="onMarkerReset"
+          :missing-in-date="selectedItemMissing ? selectedDate : undefined" @close="selectedItem = null"
         />
         <div
           v-if="selectedItem?.properties?.options?.display_option === 'line chart'"
           class="absolute bottom-40 left-1/2 transform -translate-x-1/2 bg-white dark:bg-slate-900 text-black dark:text-white p-4 rounded-lg shadow-lg z-1000 w-[95%] max-w-4xl sm:w-4/5 sm:max-w-2xl"
         >
           <LineChart
-            v-if="selectedItem" :chart-data="chartData" :selected-item="selectedItem" class="mt-4"
+            v-if="selectedItem" :chart-data="chartData" :selected-item="selectedItem" :selected-date="selectedDate" class="mt-4"
             @close="selectedItem = null"
           />
         </div>
@@ -113,7 +113,7 @@
 
 <script setup lang="ts">
 import type { SelectItem } from '@nuxt/ui';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, shallowRef, watch } from 'vue';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 import LineChart from '~/components/LineChart.vue';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
@@ -136,6 +136,8 @@ const isSmallScreen = computed(() => {
 const sidebarOpen = ref(false);
 const fetchedData = ref<GeoJSON.FeatureCollection | null>(null);
 const seriesData = ref<GeoJSON.FeatureCollection[]>([]);
+// A layer whose features carry a monthly timeline, see `LayerFeatureCollection`.
+const timelineData = shallowRef<GeoJSON.FeatureCollection & { dates: string[] } | null>(null);
 const colorMode = useColorMode();
 
 const isDark = computed({
@@ -162,37 +164,90 @@ const loading = ref(false);
 const isDataSeries = ref(false);
 
 const chartData = computed(() => {
-  const data = selectedItem.value;
-  if (!data || !data.properties?.match?.[0]) {
-    return [];
-  }
-  const properties = data.properties;
-  const series = properties.match[0];
-  return series.map((entry: DataEntry) => ({
-    date: entry[properties.options.x_axis_data],
-    value: entry[properties.options.y_axis_data],
-  }));
+  const timeline: Record<string, [number, number | null]> | undefined = selectedItem.value?.properties?.timeline;
+  return Object.entries(timeline ?? {}).map(([month, [level]]) => ({ month, value: level }));
 });
+
+// Most gauges publish with a delay, so the current month only has values for
+// a few features. Start at the latest month that most features report,
+// measured against the past year as coverage grew over the decades.
+function latestWellCoveredMonth(collection: GeoJSON.FeatureCollection & { dates: string[] }): number {
+  const counts = collection.dates.map(month =>
+    collection.features.filter(f => f.properties?.timeline?.[month]?.[1] != null).length,
+  );
+  const enough = 0.9 * Math.max(...counts.slice(-12));
+  return counts.findLastIndex(count => count >= enough);
+}
+
+// Colors every feature by its deviation in the given month.
+function timelineSnapshot(collection: GeoJSON.FeatureCollection, month: string | undefined): GeoJSON.FeatureCollection {
+  return {
+    ...collection,
+    features: collection.features.map(f => ({
+      ...f,
+      properties: { ...f.properties, deviation: month ? f.properties?.timeline?.[month]?.[1] ?? undefined : undefined },
+    })),
+  };
+}
 
 function setFeature(f: string) {
   router.push({ path: '', query: { feature: f } });
 }
 
+const MAX_MATCH_DISTANCE_METERS = 25;
+
+// Snapshots of a series are separate datasets without a shared feature id,
+// but a wind turbine or a bathing site stays where it is: the same feature is
+// the one at the same spot. Neighbours are hundreds of metres apart.
+function findAtSameLocation(feature: GeoJSON.Feature, collection: GeoJSON.FeatureCollection | null): GeoJSON.Feature | undefined {
+  if (feature.geometry?.type !== 'Point' || !collection) {
+    return undefined;
+  }
+  const [lon, lat] = feature.geometry.coordinates as [number, number];
+  const metersPerDegreeLon = 111320 * Math.cos(lat * Math.PI / 180);
+  let closest: GeoJSON.Feature | undefined;
+  let closestDistance = MAX_MATCH_DISTANCE_METERS;
+  for (const candidate of collection.features) {
+    if (candidate.geometry?.type !== 'Point') {
+      continue;
+    }
+    const [x, y] = candidate.geometry.coordinates as [number, number];
+    const distance = Math.hypot((x - lon) * metersPerDegreeLon, (y - lat) * 110540);
+    if (distance <= closestDistance) {
+      closest = candidate;
+      closestDistance = distance;
+    }
+  }
+  return closest;
+}
+
+// An open popup follows its feature into the newly selected snapshot. When
+// that snapshot does not contain the feature, the popup keeps showing it as
+// last seen and says so.
 watch(selectedIndex, (newIndex) => {
-  selectedItem.value = null;
   selectedDate.value = dateOptions[newIndex];
-  fetchedData.value = seriesData.value[newIndex] ?? null;
+  const open = selectedItem.value;
+  const openIndex = open && fetchedData.value ? fetchedData.value.features.indexOf(open) : -1;
+  fetchedData.value = timelineData.value
+    ? timelineSnapshot(timelineData.value, dateOptions[newIndex])
+    : seriesData.value[newIndex] ?? null;
+  if (open) {
+    // Every month of a timeline lists the same features in the same order.
+    const match = timelineData.value ? fetchedData.value?.features[openIndex] : findAtSameLocation(open, fetchedData.value);
+    selectedItem.value = match ?? open;
+  }
 });
 
-function onMarkerReset() {
-  leafletMapRef.value?.resetSelectedMarker();
-}
+const selectedItemMissing = computed(() =>
+  !!selectedItem.value && !!fetchedData.value && !fetchedData.value.features.includes(selectedItem.value),
+);
 
 watch(feature, async (newval) => {
   if (newval) {
     loading.value = true;
     fetchedData.value = null;
     seriesData.value = [];
+    timelineData.value = null;
     isDataSeries.value = false;
     selectedItem.value = null;
     selectedIndex.value = 0;
@@ -202,7 +257,7 @@ watch(feature, async (newval) => {
           `/api/fetchOpenData?feature=${encodeURIComponent(feature.value)}`,
         );
 
-        const featureCollections = response as (GeoJSON.FeatureCollection & { options?: Options })[];
+        const featureCollections = response as (GeoJSON.FeatureCollection & { options?: Options, dates?: string[] })[];
         // The server sends the layer options once per collection; the map and
         // popups read them off each feature.
         featureCollections.forEach(({ features, options }) => {
@@ -210,9 +265,17 @@ watch(feature, async (newval) => {
             f.properties = { ...f.properties, options };
           });
         });
-        isDataSeries.value = featureCollections.length > 1;
+        const timeline = featureCollections.length === 1 && featureCollections[0]?.dates ? featureCollections[0] : undefined;
+        isDataSeries.value = featureCollections.length > 1 || timeline !== undefined;
 
-        if (isDataSeries.value) {
+        if (timeline?.dates) {
+          timelineData.value = { ...timeline, dates: timeline.dates };
+          dateOptions = timeline.dates;
+          selectedIndex.value = latestWellCoveredMonth(timelineData.value);
+          selectedDate.value = dateOptions[selectedIndex.value];
+          fetchedData.value = timelineSnapshot(timeline, selectedDate.value);
+        }
+        else if (isDataSeries.value) {
           seriesData.value = featureCollections;
           dateOptions = getDateOptions(seriesData.value);
           selectedIndex.value = dateOptions.length - 1;

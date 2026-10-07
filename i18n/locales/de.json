@@ -13,5 +13,13 @@
   "datasetUrl": "Datensatz-URL",
   "name": "Name",
   "seriesDatasets": "Serien-Datensätze",
-  "notDefined": "Nicht definiert"
+  "notDefined": "Nicht definiert",
+  "levelInMonth": "Wasserstand {month}",
+  "longTermMean": "Langjähriges Mittel im {month}",
+  "deviation": "Abweichung",
+  "notEnoughHistory": "Zu wenig Vergleichsdaten",
+  "notCompared": "Nicht verglichen",
+  "noReadingInMonth": "Keine Messung im {month}",
+  "lastReading": "letzte Messung: {month}",
+  "notInSnapshot": "Im Datenstand vom {date} nicht enthalten. Angezeigt wird der zuletzt gesehene Stand."
 }

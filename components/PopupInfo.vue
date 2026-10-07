@@ -13,6 +13,9 @@
         &times;
       </button>
     </div>
+    <p v-if="missingInDate" class="mt-2 text-sm text-center text-gray-500 dark:text-gray-400">
+      {{ t('notInSnapshot', { date: missingInDate }) }}
+    </p>
     <ul class="mt-2 space-y-1 text-sm">
       <li v-for="(detail, index) in popupDetails" :key="index">
         <strong>{{ detail.label }}: </strong>
@@ -33,16 +36,19 @@
 <script setup lang="ts">
 const props = defineProps<{
   selectedItem: GeoJSON.Feature
+  // Set when the slider moved to a snapshot that does not contain the feature;
+  // the popup then keeps showing the feature as last seen.
+  missingInDate?: string
 }>();
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'markerReset'): void
 }>();
+
+const { t } = useI18n();
 
 function handleClose() {
   emit('close');
-  emit('markerReset');
 };
 
 const properties = computed(() => {
