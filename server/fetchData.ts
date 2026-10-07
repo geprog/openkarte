@@ -21,7 +21,9 @@ const ALLOWED_HOSTS = [
 
 export interface FetchedData { id: string, childId?: string, date?: string, data: Record<string, string>[] | GeoJSON.FeatureCollection }
 
-export type FetchedDataArray = (GeoJSON.FeatureCollection & { date?: string })[];
+export type LayerFeatureCollection = GeoJSON.FeatureCollection & { date?: string, options?: InputJSON['options'] };
+
+export type FetchedDataArray = LayerFeatureCollection[];
 
 function normalizeFormat(format: string | undefined): string {
   return (format ?? '').split('/').at(-1)?.toUpperCase() ?? '';
@@ -245,27 +247,29 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
 
       // Always return as FeatureCollection
       const id = source.childId ? [source.id, source.childId].join('/') : source.id;
-      const features = merged.map<GeoJSON.Feature | undefined>((row) => {
+      const features = merged.map((row) => {
         const latitudeField = typeof datasets.options.latitude_field === 'string' ? datasets.options.latitude_field : (datasets.options.latitude_field ? datasets.options.latitude_field[id] || datasets.options.latitude_field[source.id] : undefined);
         const longitudeField = typeof datasets.options.longitude_field === 'string' ? datasets.options.longitude_field : (datasets.options.longitude_field ? datasets.options.longitude_field[id] || datasets.options.longitude_field[source.id] : undefined);
-        const feature = isGeoJSON(row) ? row : csvToGeoJSONFromRow(row, latitudeField, longitudeField);
-        if (!feature) {
-          return undefined;
-        }
-        return { ...feature, properties: { ...feature.properties, options: datasets.options } };
-      }).filter(feature => feature !== undefined);
-      const featureCollection: GeoJSON.FeatureCollection & { date?: string } = {
+        return isGeoJSON(row) ? row : csvToGeoJSONFromRow(row, latitudeField, longitudeField);
+      }).filter(feature => feature !== null);
+      // The options go out once per collection rather than once per feature: a
+      // series like the wind turbines has ~80k features, and the copies made up
+      // five sixths of the response. The client attaches them to the features.
+      const featureCollection: LayerFeatureCollection = {
         type: 'FeatureCollection',
         features,
+        options: datasets.options,
         ...(source.date && {
-          date: new Date(source.date).toISOString().split('T')[0],
+          // `issued` is a local timestamp; going through `Date` would shift it
+          // to the previous day in UTC.
+          date: source.date.slice(0, 10),
         }),
       };
 
       if (datasets.options.crs) {
         const crs = typeof datasets.options.crs === 'string' ? datasets.options.crs : (datasets.options.crs[id] || datasets.options.crs[source.id]);
         if (crs) {
-          return reprojectGeoJSON(featureCollection, crs) as GeoJSON.FeatureCollection & { date?: string };
+          return reprojectGeoJSON(featureCollection, crs) as LayerFeatureCollection;
         }
       }
       return featureCollection;
@@ -325,10 +329,12 @@ async function fetchAndParseCsv(csvUrl: string, dataset: Dataset): Promise<Recor
     }
 
     const rows = result.data;
-    const headers = dataset.headers ?? rows.shift()?.map(h => h.replace(/^\uFEFF/, ''));
-    if (!headers) {
+    const rawHeaders = dataset.headers ?? rows.shift()?.map(h => h.replace(/^\uFEFF/, ''));
+    if (!rawHeaders) {
       return [];
     }
+    const aliases = new Map(Object.entries(dataset.column_aliases ?? {}).map(([from, to]) => [from.toLowerCase(), to]));
+    const headers = rawHeaders.map(h => aliases.get(h.toLowerCase()) ?? h);
 
     return rows.map((values) => {
       const entry: Record<string, string> = {};
@@ -395,10 +401,11 @@ function reprojectGeoJSON(geojson: GeoJSON.FeatureCollection, fromProjection: st
       if (feature.geometry.type !== 'Point') {
         return feature;
       }
-      const [x, y] = feature.geometry.coordinates;
-      if (x === undefined || y === undefined) {
+      const [rawX, y] = feature.geometry.coordinates;
+      if (rawX === undefined || y === undefined) {
         return feature;
       }
+      const x = stripUtmZonePrefix(fromProjection, rawX);
       const [lon, lat] = proj4(fromProjection, toProjection, [x, y]);
 
       const [normLon, normLat] = normalizePoint([lon, lat]);
@@ -431,6 +438,22 @@ function reprojectGeoJSON(geojson: GeoJSON.FeatureCollection, fromProjection: st
     ...geojson,
     features: reprojectedFeatures,
   };
+}
+
+/**
+ * German agencies often write ETRS89 / UTM eastings with the zone number in
+ * front (`32571605` instead of `571605` for zone 32), and they switch between
+ * both spellings from one export to the next — the wind turbine snapshots do.
+ * A zone-prefixed easting is far outside the valid range of a plain one, so it
+ * can be recognized per coordinate and stripped.
+ */
+function stripUtmZonePrefix(projection: string, easting: number): number {
+  const zone = /^EPSG:258(\d{2})$/.exec(projection)?.[1];
+  if (!zone) {
+    return easting;
+  }
+  const prefix = Number(zone) * 1_000_000;
+  return easting >= prefix && easting < prefix + 1_000_000 ? easting - prefix : easting;
 }
 
 function csvToGeoJSONFromRow(row: Record<string, string>, latKey = 'lat', lonKey = 'lon'): GeoJSON.Feature | null {

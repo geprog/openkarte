@@ -17,11 +17,15 @@ export interface MapDisplayOptions {
 export interface LegendDetails {
   label: string
   color: string
+  /** Inclusive lower bound of a `ranges` legend entry; open-ended when omitted. */
+  min?: number
+  /** Exclusive upper bound of a `ranges` legend entry; open-ended when omitted. */
+  max?: number
 }
 
 export interface Options {
   label_option: string
-  legend_option: 'default' | 'colorVariant'
+  legend_option: 'default' | 'colorVariant' | 'ranges'
   type: string
   value_group: string
   crs?: string | Record<string, string>

@@ -116,6 +116,51 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
       return div;
     };
   }
+  else if (legendDisplayOption[0] === 'ranges') {
+    // Fixed bounds from the layer config, so a class keeps its color across all
+    // snapshots of a series instead of being re-binned per snapshot.
+    legendDetail.forEach(({ label, color }) => colorMap.set(label, color));
+
+    const usedLabels = new Set<string | undefined>();
+    data.features.forEach((feature) => {
+      const raw = findValueByKey(feature.properties, key);
+      // Values may carry a unit or a decimal comma, e.g. "3000 kW" or "4,2".
+      const value = Number.parseFloat(String(raw ?? '').replace(',', '.'));
+      const label = Number.isNaN(value)
+        ? undefined
+        : legendDetail.find(({ min, max }) => (min === undefined || value >= min) && (max === undefined || value < max))?.label;
+      if (!feature.properties) {
+        feature.properties = {};
+      }
+      feature.properties.__binLabel = label;
+      usedLabels.add(label);
+    });
+
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'info legend');
+      div.setAttribute(
+        'style',
+        'background: white; padding: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);',
+      );
+
+      legendDetail.forEach(({ label, color }) => {
+        if (usedLabels.has(label)) {
+          div.innerHTML += `
+          <div style="color:black; margin-bottom:4px;">
+            <i style="background:${color}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${label}
+          </div>`;
+        }
+      });
+      if (usedLabels.has(undefined)) {
+        div.innerHTML += `
+          <div style="color:black; margin-bottom:4px;">
+            <i style="background:${NO_VALUE_COLOR}; width:12px; height:12px; display:inline-block; margin-right:4px;"></i> ${t('notDefined')}
+          </div>`;
+      }
+
+      return div;
+    };
+  }
   else if (legendDisplayOption[0] === 'colorVarient') {
     const numericValues: number[] = uniqueValues
       .filter(v => v !== undefined)
@@ -235,7 +280,7 @@ function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
       }
     }
 
-    if (legendOption === 'colorVarient') {
+    if (legendOption === 'colorVarient' || legendOption === 'ranges') {
       key = feature.properties?.__binLabel;
     }
 

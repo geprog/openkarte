@@ -202,7 +202,14 @@ watch(feature, async (newval) => {
           `/api/fetchOpenData?feature=${encodeURIComponent(feature.value)}`,
         );
 
-        const featureCollections = response as GeoJSON.FeatureCollection[];
+        const featureCollections = response as (GeoJSON.FeatureCollection & { options?: Options })[];
+        // The server sends the layer options once per collection; the map and
+        // popups read them off each feature.
+        featureCollections.forEach(({ features, options }) => {
+          features.forEach((f) => {
+            f.properties = { ...f.properties, options };
+          });
+        });
         isDataSeries.value = featureCollections.length > 1;
 
         if (isDataSeries.value) {
