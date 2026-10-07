@@ -9,6 +9,11 @@ export interface Dataset {
   resource_id: string
   title: string
   headers?: string[]
+  /** Overrides for CSV resources; both are auto-detected when omitted. */
+  csv?: {
+    delimiter?: string
+    quoteChar?: string
+  }
 }
 
 export interface Mappings {

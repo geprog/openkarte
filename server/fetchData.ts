@@ -1,5 +1,6 @@
 import type { Package, Relationship, Resource, Response } from './types/ckan';
 import type { Dataset, InputJSON } from '~/server/prepareInput';
+import Papa from 'papaparse';
 import proj4 from 'proj4';
 import defs from 'proj4js-definitions';
 import { withRequestSlot } from '~/server/utils/concurrency';
@@ -84,7 +85,7 @@ export async function fetchSeriesData(s: Relationship, dataset: Dataset): Promis
       const resource = res.result.resources.find(res => isFormat(res, 'CSV'))?.url;
       if (resource) {
         const publishedDate = res.result.extras.find(m => m.key === 'issued')?.value || '';
-        return { id: dataset.id, childId: s.__extras.subject_package_id, date: publishedDate, data: await fetchAndParseCsv(resource, dataset?.headers) };
+        return { id: dataset.id, childId: s.__extras.subject_package_id, date: publishedDate, data: await fetchAndParseCsv(resource, dataset) };
       }
     }
   }
@@ -129,7 +130,7 @@ export async function fetchData(datasets: InputJSON): Promise<FetchedData[]> {
           if (resource) {
             const resourceUrl = resource.url?.replace(/^http:/, 'https:');
             if (isFormat(resource, 'CSV')) {
-              const data: FetchedData = { id: dataset.id, data: await fetchAndParseCsv(resourceUrl, dataset?.headers) };
+              const data: FetchedData = { id: dataset.id, data: await fetchAndParseCsv(resourceUrl, dataset) };
               return [data];
             }
             else if (['JSON', 'GEOJSON', 'SHP'].some(format => isFormat(resource, format))) {
@@ -292,74 +293,50 @@ function calculateMean(values: number[]): number {
   return sum / numbers.length;
 }
 
-class InvalidSeparatorError extends Error {}
-
-function normalizeValue(value: string): string {
-  return value.replace(/^["']/, '').replace(/["']$/, '').trim();
-}
-function splitCsvLine(headerLine: string, rows: string[], separator: string): Record<string, string>[] | false {
-  const detectedHeaders = headerLine.split(separator).map(normalizeValue);
-  if (detectedHeaders.length < 2) {
-    return false;
-  }
-
+/**
+ * Downloads a CSV resource and parses it into one record per row.
+ *
+ * Delimiter and quoting are detected by papaparse unless the dataset pins them
+ * via `csv.delimiter` / `csv.quoteChar`. Datasets without a header row list
+ * their column names in `headers`.
+ */
+async function fetchAndParseCsv(csvUrl: string, dataset: Dataset): Promise<Record<string, string>[]> {
   try {
-    return rows.map((line) => {
-      const values = line.split(separator).map(normalizeValue);
-      if (values.length !== detectedHeaders.length) {
-        console.error('Detected separator does not match number of columns in line compared to header', line, detectedHeaders, separator);
-      }
+    const response = await fetchCsvFromUrl(csvUrl);
+    let csvText = new TextDecoder('utf-8').decode(response);
+    if (csvText.includes('Ã') || csvText.includes('\uFFFD')) {
+      csvText = new TextDecoder('iso-8859-1').decode(response);
+    }
+
+    const result = Papa.parse<string[]>(csvText, {
+      delimiter: dataset.csv?.delimiter ?? '',
+      quoteChar: dataset.csv?.quoteChar ?? '"',
+      skipEmptyLines: 'greedy',
+      transform: value => value.trim(),
+    });
+
+    const fatal = result.errors.filter(e => e.type === 'Delimiter');
+    if (fatal.length > 0) {
+      console.warn('Could not detect CSV delimiter, configure csv.delimiter for', dataset.id, csvUrl);
+      return [];
+    }
+    if (result.errors.length > 0) {
+      console.warn(`CSV ${csvUrl} parsed with ${result.errors.length} issue(s), first:`, result.errors[0]);
+    }
+
+    const rows = result.data;
+    const headers = dataset.headers ?? rows.shift()?.map(h => h.replace(/^\uFEFF/, ''));
+    if (!headers) {
+      return [];
+    }
+
+    return rows.map((values) => {
       const entry: Record<string, string> = {};
-      detectedHeaders.forEach((key, i) => {
+      headers.forEach((key, i) => {
         entry[key] = values[i] ?? '';
       });
       return entry;
     });
-  }
-  catch (error) {
-    if (error instanceof InvalidSeparatorError) {
-      return false;
-    }
-    throw error;
-  }
-}
-
-async function fetchAndParseCsv(csvUrl: string, headers?: string[]): Promise<Record<string, string>[]> {
-  try {
-    const response = await fetchCsvFromUrl(csvUrl);
-    const decoder = new TextDecoder('utf-8');
-    let csvText = decoder.decode(response);
-    if (csvText.includes('Ã') || csvText.includes('�')) {
-      csvText = new TextDecoder('iso-8859-1').decode(response);
-    }
-
-    // Remove BOM if present
-    if (csvText.charCodeAt(0) === 0xFEFF)
-      csvText = csvText.slice(1);
-
-    const rows = csvText.trim().split('\n');
-    if (headers) {
-      return rows.map((line) => {
-        const values = line.split('|').map(normalizeValue);
-        const entry: Record<string, string> = {};
-        headers.forEach((key, i) => {
-          entry[key] = values[i] ?? '';
-        });
-        return entry;
-      });
-    }
-    else {
-      const headerLine = rows.shift();
-      if (!headerLine)
-        return [];
-
-      const result = splitCsvLine(headerLine, rows, ',') || splitCsvLine(headerLine, rows, ';') || splitCsvLine(headerLine, rows, '\t') || splitCsvLine(headerLine, rows, '|');
-      if (!result) {
-        console.warn('Could not parse CSV with common separators , ; \\t |', csvUrl);
-        return [];
-      }
-      return result;
-    }
   }
   catch (error) {
     console.error('Error fetching CSV Files', error);
