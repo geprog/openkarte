@@ -119,6 +119,7 @@
       "x_axis_label": "Datum",
       "y_axis_label": "Pegelstand (m)",
       "x_axis_data": "Zeit[MEZ]",
-      "y_axis_data": "wasserstand"
+      "y_axis_data": "wasserstand",
+      "y_axis_divisor": 100
     }
 }

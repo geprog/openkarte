@@ -53,8 +53,9 @@ const labels = computed(() =>
   props.chartData.map(d => d.date?.split(' ')[0] ?? ''),
 );
 
+// Converts the published unit to the one on the axis, e.g. 100 for cm → m.
 const values = computed(() =>
-  props.chartData.map(d => Number(d.value)),
+  props.chartData.map(d => Number(d.value) / (properties.value.options.y_axis_divisor ?? 1)),
 );
 
 const data = computed(() => ({
