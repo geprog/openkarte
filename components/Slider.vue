@@ -21,7 +21,7 @@
 
     <div class="relative w-full h-5 mt-2">
       <span
-        v-for="group in groupedDates" :key="group.year" class="absolute text-sm text-white whitespace-nowrap font-medium" :style="{
+        v-for="group in groupedDates" :key="group.year" class="absolute text-sm whitespace-nowrap font-medium" :style="{
           left: `${parseFloat(group.offset) + parseFloat(group.width) / 2}%`,
           transform: 'translateX(-50%)',
           fontSize: isSmallScreen ? '0.50rem' : '1rem',
@@ -31,7 +31,7 @@
       </span>
     </div>
 
-    <div class="mt-2 text-center text-white font-semibold">
+    <div class="mt-2 text-center font-semibold">
       {{ t('selectedDate') }}: {{ selectedDate }}
     </div>
   </div>
