@@ -29,11 +29,11 @@ import { computed } from 'vue';
 import { Line } from 'vue-chartjs';
 
 const props = defineProps<{
-  // Both fields are looked up in the published data by a column name that comes
-  // from the layer config, so either can be missing when a publisher renames a
-  // column.
-  chartData: { date?: string, value?: string }[]
+  // One entry per month ("2024-05"), as condensed by the server.
+  chartData: { month: string, value: number }[]
   selectedItem: GeoJSON.Feature
+  // Month picked on the slider, highlighted on the line.
+  selectedDate?: string
 }>();
 const emit = defineEmits<{
   (e: 'close'): void
@@ -46,10 +46,10 @@ const properties = computed(() => {
 
 const chartTitle = computed(() => properties.value[properties.value.options.chart_name]);
 
-// Gauges publish local timestamps without a zone ("1996-11-07 01:00:00").
-// Reading and formatting them as UTC keeps the dates as published.
-function toTimestamp(date: string | undefined): number {
-  return date ? Date.parse(`${date.replace(' ', 'T')}Z`) : Number.NaN;
+// Months are placed and formatted in UTC, so no time zone shifts them.
+function toTimestamp(month: string): number {
+  const [year, monthOfYear] = month.split('-').map(Number);
+  return Date.UTC(year!, monthOfYear! - 1, 1);
 }
 
 function formatDate(timestamp: number): string {
@@ -77,19 +77,24 @@ function yearTicks(min: number, max: number): { value: number }[] | undefined {
   return ticks;
 }
 
-// Points sit on a time-proportional axis: a gauge that switched from hourly to
-// monthly readings would otherwise squeeze the monthly years into a sliver at
-// the end. A reading without a usable date cannot be placed and is dropped.
+// Points sit on a time-proportional axis, so gaps in a gauge's record show as
+// gaps rather than being squeezed out.
 const points = computed(() =>
   props.chartData
     .map(d => ({
-      x: toTimestamp(d.date),
+      x: toTimestamp(d.month),
       // Converts the published unit to the one on the axis, e.g. 100 for cm → m.
-      y: Number(d.value) / (properties.value.options.y_axis_divisor ?? 1),
+      y: d.value / (properties.value.options.y_axis_divisor ?? 1),
     }))
-    .filter(p => !Number.isNaN(p.x))
     .sort((a, b) => a.x - b.x),
 );
+
+const selectedPoint = computed(() => {
+  const x = props.selectedDate ? toTimestamp(props.selectedDate) : undefined;
+  return points.value.filter(p => p.x === x);
+});
+
+const { t } = useI18n();
 
 const data = computed(() => ({
   datasets: [
@@ -100,8 +105,18 @@ const data = computed(() => ({
       backgroundColor: '#4ade80',
       borderWidth: 2,
       tension: 0.3, // smooth line
-      pointRadius: 3,
-      pointHoverRadius: 5,
+      pointRadius: 0,
+      pointHitRadius: 6,
+      pointHoverRadius: 4,
+    },
+    {
+      label: t('selectedDate'),
+      data: selectedPoint.value,
+      borderColor: '#0f172b',
+      backgroundColor: '#0f172b',
+      pointRadius: 6,
+      pointHoverRadius: 7,
+      showLine: false,
     },
   ],
 }));

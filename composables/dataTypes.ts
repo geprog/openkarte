@@ -1,7 +1,3 @@
-export interface DataEntry {
-  [key: string]: string | number
-}
-
 export interface MapDisplayOptions {
   name: string
   title: string
@@ -28,6 +24,14 @@ export interface Options {
   popup_name?: string
   popup_details?: { label: string, prop: string | string[] }[]
   legend_details?: LegendDetails[]
+  /** Shown above the legend entries, e.g. to say what the colors measure. */
+  legend_title?: string
+  /** Column holding the timestamp of each reading of a `value_group` series. */
+  date_field?: string
+  /** Readings a publisher uses as placeholders for "no reading". */
+  missing_values?: number[]
+  /** Jump between neighbouring readings that marks a moved zero point. */
+  level_jump_threshold?: number
 }
 
 export interface UrlInfo {

@@ -128,24 +128,28 @@
   ],
   "options":
     {
-      "label_option": "average",
+      "label_option": "deviation",
       "legend_option": "ranges",
+      "legend_title": "Wasserstand im Vergleich zum langjährigen Mittel desselben Kalendermonats",
       "legend_details": [
-        { "label": "< 2 m", "color": "#86b6ef", "max": 200 },
-        { "label": "2 – 10 m", "color": "#3987e5", "min": 200, "max": 1000 },
-        { "label": "10 – 20 m", "color": "#256abf", "min": 1000, "max": 2000 },
-        { "label": "20 – 30 m", "color": "#184f95", "min": 2000, "max": 3000 },
-        { "label": "≥ 30 m", "color": "#0d366b", "min": 3000 }
+        { "label": "über +30 cm", "color": "#1c5cab", "min": 30 },
+        { "label": "+15 bis +30 cm", "color": "#3987e5", "min": 15, "max": 30 },
+        { "label": "+5 bis +15 cm", "color": "#86b6ef", "min": 5, "max": 15 },
+        { "label": "±5 cm (üblich)", "color": "#f0efec", "min": -5, "max": 5 },
+        { "label": "−5 bis −15 cm", "color": "#ee958f", "min": -15, "max": -5 },
+        { "label": "−15 bis −30 cm", "color": "#e34948", "min": -30, "max": -15 },
+        { "label": "unter −30 cm", "color": "#a52a29", "max": -30 }
       ],
       "type": "geo",
       "value_group": "wasserstand",
+      "date_field": "Zeit[MEZ]",
+      "missing_values": [0],
+      "level_jump_threshold": 200,
       "display_option": "line chart",
       "chart_name": "WK_NAME",
       "chart_legend": "Pegelstand im Zeitverlauf",
       "x_axis_label": "Datum",
       "y_axis_label": "Pegelstand (m)",
-      "x_axis_data": "Zeit[MEZ]",
-      "y_axis_data": "wasserstand",
       "y_axis_divisor": 100
     }
 }

@@ -11,6 +11,9 @@ import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility
 
 const props = defineProps<{
   fetchedData?: GeoJSON.FeatureCollection | null
+  // The map zooms to the data whenever this changes, i.e. when another layer
+  // is picked, but not when the slider swaps the data of the same layer.
+  layerKey?: string | null
 }>();
 
 const emit = defineEmits<{
@@ -162,6 +165,19 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
     };
   }
 
+  const legendTitle: string | undefined = data.features[0]?.properties?.options?.legend_title;
+  const renderEntries = legend.onAdd;
+  if (legendTitle && renderEntries) {
+    legend.onAdd = (map) => {
+      const div = renderEntries.call(legend, map);
+      const title = L.DomUtil.create('div');
+      title.setAttribute('style', 'color:black; font-weight:600; max-width:180px; margin-bottom:6px;');
+      title.textContent = legendTitle;
+      div.prepend(title);
+      return div;
+    };
+  }
+
   if (leafletMap && legend.onAdd) {
     legend.addTo(leafletMap);
     legendControl = legend;
@@ -253,6 +269,11 @@ function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
     geoJsonLayer.addTo(leafletMap as L.Map);
     geoJsonLayers.push(geoJsonLayer);
   });
+}
+
+let fittedLayerKey: string | null | undefined;
+
+function fitToData() {
   const bounds = new L.LatLngBounds(geoJsonLayers.map(layer => [layer.getBounds().getNorthEast(), layer.getBounds().getSouthWest()]).flat());
   if (bounds.isValid()) {
     leafletMap?.fitBounds(bounds, { padding: [50, 50] });
@@ -313,6 +334,10 @@ watch(() => props.fetchedData, (newData) => {
     clearMarkers();
     clearLegend();
     renderMarkers(newData);
+    if (fittedLayerKey !== props.layerKey) {
+      fitToData();
+      fittedLayerKey = props.layerKey;
+    }
   }
 }, { immediate: true });
 </script>

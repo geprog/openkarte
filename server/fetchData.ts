@@ -21,7 +21,12 @@ const ALLOWED_HOSTS = [
 
 export interface FetchedData { id: string, date?: string, data: Record<string, string>[] | GeoJSON.FeatureCollection }
 
-export type LayerFeatureCollection = GeoJSON.FeatureCollection & { date?: string, options?: InputJSON['options'] };
+/**
+ * `dates` is set for layers whose features carry a monthly `timeline` instead
+ * of being published as one collection per snapshot; the slider steps through
+ * these months.
+ */
+export type LayerFeatureCollection = GeoJSON.FeatureCollection & { date?: string, dates?: string[], options?: InputJSON['options'] };
 
 export type FetchedDataArray = LayerFeatureCollection[];
 
@@ -200,16 +205,13 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
               if (!mergedRow.properties) {
                 mergedRow.properties = {};
               }
-              if (!mergedRow.properties.match) {
-                mergedRow.properties.match = [];
-              }
               const baseValue = getValue(baseRow.properties, m.source_db_field)?.toString().toLowerCase();
               if (baseValue && baseValue.includes(m.target_db_field.toLowerCase())) {
-                const values = targetRows.map((d) => {
-                  return isGeoJSON(d) ? (d.properties || {})[datasets.options.value_group] : d[datasets.options.value_group];
+                const readings = targetRows.map((d) => {
+                  const row = isGeoJSON(d) ? (d.properties || {}) : d;
+                  return { date: row[datasets.options.date_field ?? ''], value: row[datasets.options.value_group] };
                 });
-                mergedRow.properties.match.push(targetDataset.data);
-                mergedRow.properties.average = calculateMean(values);
+                mergedRow.properties.timeline = buildTimeline(readings, datasets.options);
               }
             }
           }
@@ -249,10 +251,14 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
       // The options go out once per collection rather than once per feature: a
       // series like the wind turbines has ~80k features, and the copies made up
       // five sixths of the response. The client attaches them to the features.
+      const timelineMonths = features.flatMap(f => Object.keys(f.properties?.timeline ?? {}));
       const featureCollection: LayerFeatureCollection = {
         type: 'FeatureCollection',
         features,
         options: datasets.options,
+        ...(timelineMonths.length > 0 && {
+          dates: [...new Set(timelineMonths)].sort(),
+        }),
         ...(source.date && {
           // `issued` is a local timestamp; going through `Date` would shift it
           // to the previous day in UTC.
@@ -279,13 +285,70 @@ function getValue(obj: any, field: string) {
   return field.split('.').reduce((acc, key) => acc?.[key], obj);
 }
 
-function calculateMean(values: number[]): number | undefined {
-  const numbers = values.map(v => typeof v === 'string' ? Number.parseFloat(v) : v).filter(v => typeof v === 'number' && !Number.isNaN(v));
-  if (numbers.length === 0) {
-    return undefined;
+/** Calendar months a segment needs data for before it gets an average. */
+const MIN_YEARS_PER_CALENDAR_MONTH = 3;
+
+/**
+ * Month → [mean level, deviation from that calendar month's long-term mean].
+ * The deviation is null when there is too little history to compare against.
+ */
+export type Timeline = Record<string, [number, number | null]>;
+
+/**
+ * Condenses a gauge's readings to monthly means and compares each month with
+ * the long-term mean of the same calendar month, so seasonal swings do not
+ * show up as anomalies.
+ *
+ * Gauges measure from a zero point (Pegelnullpunkt) that gets moved from time
+ * to time, which shifts every later reading by metres. Readings are therefore
+ * split into segments wherever two neighbours differ by more than
+ * `level_jump_threshold`, and each segment is compared only with itself.
+ */
+function buildTimeline(readings: { date: unknown, value: unknown }[], options: InputJSON['options']): Timeline {
+  const missing = new Set(options.missing_values ?? []);
+  const threshold = options.level_jump_threshold ?? Infinity;
+
+  const segments: { month: string, value: number }[][] = [];
+  let previous: number | undefined;
+  for (const { date, value } of readings) {
+    const number = typeof value === 'number' ? value : Number.parseFloat(String(value));
+    if (typeof date !== 'string' || Number.isNaN(number) || missing.has(number)) {
+      continue;
+    }
+    if (previous === undefined || Math.abs(number - previous) > threshold) {
+      segments.push([]);
+    }
+    segments.at(-1)!.push({ month: date.slice(0, 7), value: number });
+    previous = number;
   }
-  const sum = numbers.reduce((acc, val) => acc + val, 0);
-  return sum / numbers.length;
+
+  const timeline: Timeline = {};
+  for (const segment of segments) {
+    const sums = new Map<string, { sum: number, count: number }>();
+    for (const { month, value } of segment) {
+      const entry = sums.get(month) ?? { sum: 0, count: 0 };
+      entry.sum += value;
+      entry.count++;
+      sums.set(month, entry);
+    }
+    const monthly = [...sums].map(([month, { sum, count }]) => ({ month, level: sum / count }));
+
+    const byCalendarMonth = new Map<string, number[]>();
+    for (const { month, level } of monthly) {
+      const calendarMonth = month.slice(5);
+      byCalendarMonth.set(calendarMonth, [...(byCalendarMonth.get(calendarMonth) ?? []), level]);
+    }
+
+    // A month split by a zero point change is listed by the later segment.
+    for (const { month, level } of monthly) {
+      const sameMonth = byCalendarMonth.get(month.slice(5))!;
+      const deviation = sameMonth.length >= MIN_YEARS_PER_CALENDAR_MONTH
+        ? Math.round(level - sameMonth.reduce((a, b) => a + b, 0) / sameMonth.length)
+        : null;
+      timeline[month] = [Math.round(level * 10) / 10, deviation];
+    }
+  }
+  return timeline;
 }
 
 /**
