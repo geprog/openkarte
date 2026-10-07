@@ -24,7 +24,7 @@
     "chroma-js": "3.2.0",
     "leaflet": "1.9.4",
     "leaflet-defaulticon-compatibility": "0.1.2",
-    "nuxt": "4.6.0",
+    "nuxt": "4.5.2",
     "proj4": "2.22.0",
     "shpjs": "6.2.0",
     "tailwindcss": "4.3.3",
