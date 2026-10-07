@@ -12,6 +12,13 @@
       {{ chartTitle }}
     </p>
 
+    <p v-if="missingReading" class="mt-2 text-center text-sm">
+      {{ t('noReadingInMonth', { month: missingReading.monthName }) }}
+      <template v-if="missingReading.lastReadingName">
+        – {{ t('lastReading', { month: missingReading.lastReadingName }) }}
+      </template>
+    </p>
+
     <!-- What the lake's color on the map is based on, for the selected month -->
     <dl v-if="selectedStats" class="mt-2 grid grid-cols-3 gap-2 text-center text-sm">
       <div>
@@ -64,7 +71,7 @@ const props = defineProps<{
   // One entry per month ("2024-05"), as condensed by the server.
   chartData: { month: string, value: number }[]
   selectedItem: GeoJSON.Feature
-  // Month picked on the slider, highlighted on the line.
+  // Month picked on the slider, marked on the chart.
   selectedDate?: string
 }>();
 const emit = defineEmits<{
@@ -121,12 +128,42 @@ const points = computed(() =>
     .sort((a, b) => a.x - b.x),
 );
 
-const selectedPoint = computed(() => {
-  const x = props.selectedDate ? toTimestamp(props.selectedDate) : undefined;
-  return points.value.filter(p => p.x === x);
+const selectedX = computed(() => props.selectedDate ? toTimestamp(props.selectedDate) : undefined);
+
+const selectedPoint = computed(() => points.value.filter(p => p.x === selectedX.value));
+
+// A dashed line across the chart at the selected month, which also shows
+// where that month lies when the gauge has no reading for it.
+const selectedLine = computed(() => {
+  const x = selectedX.value;
+  const values = points.value.map(p => p.y).filter(y => !Number.isNaN(y));
+  if (x === undefined || values.length === 0) {
+    return [];
+  }
+  return [{ x, y: Math.min(...values) }, { x, y: Math.max(...values) }];
 });
 
+// Readable on the light and the dark popup background.
+const SELECTED_COLOR = '#64748b';
+
 const { t, locale } = useI18n();
+
+function monthName(month: string): string {
+  return new Date(toTimestamp(month)).toLocaleDateString(locale.value, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
+// The selected month has no reading, e.g. because the gauge stopped long ago.
+const missingReading = computed(() => {
+  const month = props.selectedDate;
+  if (!month || properties.value.timeline?.[month]) {
+    return undefined;
+  }
+  const lastMonth = props.chartData.map(d => d.month).filter(m => m < month).sort().at(-1);
+  return {
+    monthName: monthName(month),
+    lastReadingName: lastMonth ? monthName(lastMonth) : undefined,
+  };
+});
 
 function formatNumber(value: number, unit: string | undefined, { fractionDigits = 0, signed = false } = {}): string {
   const number = value.toLocaleString(locale.value, {
@@ -152,7 +189,7 @@ const selectedStats = computed(() => {
   return {
     // e.g. a gauge's placeholder zeros, which are shown but never compared
     excluded: (options.excluded_from_mean ?? []).includes(level),
-    monthName: date.toLocaleDateString(locale.value, { month: 'long', year: 'numeric', timeZone: 'UTC' }),
+    monthName: monthName(month),
     calendarMonthName: date.toLocaleDateString(locale.value, { month: 'long', timeZone: 'UTC' }),
     level: formatNumber(level / divisor, options.y_axis_unit, { fractionDigits: 2 }),
     mean: deviation === null ? undefined : formatNumber((level - deviation) / divisor, options.y_axis_unit, { fractionDigits: 2 }),
@@ -175,9 +212,20 @@ const data = computed(() => ({
     },
     {
       label: t('selectedDate'),
+      data: selectedLine.value,
+      borderColor: SELECTED_COLOR,
+      backgroundColor: SELECTED_COLOR,
+      borderWidth: 1.5,
+      borderDash: [6, 4],
+      pointRadius: 0,
+      pointHitRadius: 0,
+      tension: 0,
+    },
+    {
+      label: t('selectedDate'),
       data: selectedPoint.value,
-      borderColor: '#0f172b',
-      backgroundColor: '#0f172b',
+      borderColor: SELECTED_COLOR,
+      backgroundColor: SELECTED_COLOR,
       pointRadius: 6,
       pointHoverRadius: 7,
       showLine: false,
@@ -189,6 +237,12 @@ const options = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
+    legend: {
+      labels: {
+        // The dot and the dashed line both mark the selected month; list it once.
+        filter: item => item.datasetIndex !== 2,
+      },
+    },
     tooltip: {
       callbacks: {
         title: items => items[0] ? formatDate(items[0].parsed.x!) : '',
@@ -204,8 +258,9 @@ const options = computed(() => ({
     },
     x: {
       type: 'linear',
-      min: points.value[0]?.x,
-      max: points.value.at(-1)?.x,
+      // Reaches out to the selected month even when the readings end earlier.
+      min: Math.min(...[points.value[0]?.x, selectedX.value].filter(x => x !== undefined)),
+      max: Math.max(...[points.value.at(-1)?.x, selectedX.value].filter(x => x !== undefined)),
       title: {
         display: true,
         text: properties.value.options.x_axis_label,

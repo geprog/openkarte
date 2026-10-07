@@ -18,5 +18,7 @@
   "longTermMean": "Langjähriges Mittel im {month}",
   "deviation": "Abweichung",
   "notEnoughHistory": "Zu wenig Vergleichsdaten",
-  "notCompared": "Nicht verglichen"
+  "notCompared": "Nicht verglichen",
+  "noReadingInMonth": "Keine Messung im {month}",
+  "lastReading": "letzte Messung: {month}"
 }

@@ -18,5 +18,7 @@
   "longTermMean": "Long-term mean for {month}",
   "deviation": "Deviation",
   "notEnoughHistory": "Too little history",
-  "notCompared": "Not compared"
+  "notCompared": "Not compared",
+  "noReadingInMonth": "No reading in {month}",
+  "lastReading": "last reading: {month}"
 }
