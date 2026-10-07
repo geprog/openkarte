@@ -30,7 +30,10 @@ import { computed } from 'vue';
 import { Line } from 'vue-chartjs';
 
 const props = defineProps<{
-  chartData: { date: string, value: string }[]
+  // Both fields are looked up in the published data by a column name that comes
+  // from the layer config, so either can be missing when a publisher renames a
+  // column.
+  chartData: { date?: string, value?: string }[]
   selectedItem: GeoJSON.Feature
 }>();
 const emit = defineEmits<{
@@ -45,7 +48,9 @@ const properties = computed(() => {
 const chartTitle = computed(() => properties.value[properties.value.options.chart_name]);
 
 const labels = computed(() =>
-  props.chartData.map(d => d.date.split(' ')[0]),
+  // A blank label leaves a gap in the axis; reading `.split` off undefined
+  // throws out of a computed and takes the whole popup down with it.
+  props.chartData.map(d => d.date?.split(' ')[0] ?? ''),
 );
 
 const values = computed(() =>

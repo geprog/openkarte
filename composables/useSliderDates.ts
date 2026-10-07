@@ -29,7 +29,7 @@ export function getDatesGroups(dateOptions: string[]) {
       year,
       width: width.toFixed(2),
       offset: offset.toFixed(2),
-      color: yearColors[i % yearColors.length],
+      color: yearColors[i % yearColors.length]!,
     };
     offset += width;
     return group;

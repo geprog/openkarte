@@ -69,7 +69,7 @@ function generateLabels(data: GeoJSON.FeatureCollection): Map<string, string> {
   );
   const labelKey: string | undefined = data.features[0]?.properties?.options?.label_option;
   const key = labelKey ?? 'default';
-  const legendDetail = (data.features[0].properties?.options?.legend_details || []) as LegendDetails[];
+  const legendDetail = (data.features[0]?.properties?.options?.legend_details || []) as LegendDetails[];
 
   const rawValues = data.features.map(f => findValueByKey(f, key));
 
@@ -199,7 +199,7 @@ function generateColor(index: number, total: number): string {
     { start: 30, end: 330 },
   ];
 
-  const range = allowedRanges[0];
+  const range = allowedRanges[0]!;
   const hue = range.start + (index * (range.end - range.start)) / total;
 
   return `hsl(${hue}, 70%, 40%)`;
@@ -335,7 +335,7 @@ onMounted(() => {
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(leafletMap);
-  setTimeout(() => invalidateMapSize(), 300);
+  setTimeout(invalidateMapSize, 300);
   window.addEventListener('resize', invalidateMapSize);
 });
 

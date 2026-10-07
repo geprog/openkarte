@@ -107,14 +107,14 @@
         </div>
       </main>
     </div>
-    <MetaInformationModal v-if="showUrlCard" :file-name="feature" :show-url-card="showUrlCard" @close="showUrlCard = false" />
+    <MetaInformationModal v-if="showUrlCard && feature" :file-name="feature" :show-url-card="showUrlCard" @close="showUrlCard = false" />
   </div>
 </template>
 
 <script setup lang="ts">
 import type { SelectItem } from '@nuxt/ui';
-import LoadingSpinner from '@/components/LoadingSpinner.vue';
 import { computed, ref, watch } from 'vue';
+import LoadingSpinner from '@/components/LoadingSpinner.vue';
 import LineChart from '~/components/LineChart.vue';
 import MyLeafletMap from '~/components/MyLeafletMap.vue';
 import PopupInfo from '~/components/PopupInfo.vue';
@@ -157,7 +157,7 @@ const feature = computed<string | null>(() => {
 const selectedIndex = ref(0);
 const selectedItem = ref<GeoJSON.Feature | null>(null);
 const selectedDate = ref();
-let dateOptions: string[];
+let dateOptions: string[] = [];
 const loading = ref(false);
 const isDataSeries = ref(false);
 
@@ -181,7 +181,7 @@ function setFeature(f: string) {
 watch(selectedIndex, (newIndex) => {
   selectedItem.value = null;
   selectedDate.value = dateOptions[newIndex];
-  fetchedData.value = seriesData.value[newIndex];
+  fetchedData.value = seriesData.value[newIndex] ?? null;
 });
 
 function onMarkerReset() {
@@ -212,7 +212,7 @@ watch(feature, async (newval) => {
           selectedDate.value = dateOptions[selectedIndex.value];
         }
         else {
-          fetchedData.value = featureCollections[0];
+          fetchedData.value = featureCollections[0] ?? null;
         }
       }
       catch (error) {

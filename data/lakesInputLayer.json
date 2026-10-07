@@ -111,7 +111,7 @@
       "chart_legend": "Pegelstand im Zeitverlauf",
       "x_axis_label": "Datum",
       "y_axis_label": "Pegelstand (m)",
-      "x_axis_data": "Zeit",
+      "x_axis_data": "Zeit[MEZ]",
       "y_axis_data": "wasserstand"
     }
 }

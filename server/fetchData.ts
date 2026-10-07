@@ -1,7 +1,8 @@
-import type { Package, Relationship, Response } from './types/ckan';
+import type { Package, Relationship, Resource, Response } from './types/ckan';
 import type { Dataset, InputJSON } from '~/server/prepareInput';
 import proj4 from 'proj4';
 import defs from 'proj4js-definitions';
+import { withRequestSlot } from '~/server/utils/concurrency';
 import { fetchCsvFromUrl } from '~/server/utils/fetch-csv';
 
 import { fetchJsonFromUrl } from '~/server/utils/fetch-json';
@@ -21,15 +22,66 @@ export interface FetchedData { id: string, childId?: string, date?: string, data
 
 export type FetchedDataArray = (GeoJSON.FeatureCollection & { date?: string })[];
 
+function normalizeFormat(format: string | undefined): string {
+  return (format ?? '').split('/').at(-1)?.toUpperCase() ?? '';
+}
+
+function isFormat(resource: Resource, format: string): boolean {
+  return normalizeFormat(resource.format) === format
+    || (format === 'CSV' && resource.mimetype === 'text/csv');
+}
+
+/**
+ * Formats the loaders below understand, in the order a fallback should try them.
+ *
+ * Geometry first: a dataset that carries features usually also offers a flat CSV
+ * export of them (the tree register offers SHP, GeoJSON, GML and CSV), and that
+ * export drops the coordinates, which makes it useless as a layer's base. The
+ * reverse costs nothing — a value-only dataset has no geometry to prefer, and
+ * `fetchMappings` reads values out of GeoJSON properties just as happily as out
+ * of CSV columns. Plain `JSON` comes last because it is only loadable when it
+ * happens to contain GeoJSON, which for e.g. the gauge readings it does not.
+ */
+const SUPPORTED_FORMATS = ['GEOJSON', 'SHP', 'CSV', 'JSON'];
+
+/**
+ * Picks the resource to download for `dataset`.
+ *
+ * The configured `resource_id` wins, but a portal mints a fresh id every time it
+ * republishes a resource, so an id in the input layer goes stale on its own —
+ * every gauge behind the lakes layer rotated its id, which left the lakes drawn
+ * but without water levels. Falling back to the first resource in a format we
+ * can load keeps a rotated id a warning instead of a silently empty layer.
+ */
+function selectResource(resources: Resource[], dataset: Dataset): Resource | undefined {
+  const configured = resources.find(r => r.id === dataset.resource_id);
+  if (configured) {
+    return configured;
+  }
+
+  for (const format of SUPPORTED_FORMATS) {
+    const resource = resources.find(r => isFormat(r, format));
+    if (resource) {
+      console.warn(
+        `Resource ${dataset.resource_id} no longer exists in dataset ${dataset.id}; `
+        + `falling back to its ${format} resource ${resource.id}`,
+      );
+      return resource;
+    }
+  }
+
+  return undefined;
+}
+
 export async function fetchSeriesData(s: Relationship, dataset: Dataset): Promise<FetchedData | undefined> {
   try {
     const url = `https://${dataset.host}/api/action/package_show?id=${s.__extras.subject_package_id}`;
-    const response = await fetch(url);
-    const res: Response<Package> = await response.json();
+    const res: Response<Package> = await withRequestSlot(async () => {
+      const response = await fetch(url);
+      return response.json();
+    });
     if (res.success) {
-      const resource = res.result.resources.find(
-        res => res.format === 'CSV' || res.mimetype === 'text/csv',
-      )?.url;
+      const resource = res.result.resources.find(res => isFormat(res, 'CSV'))?.url;
       if (resource) {
         const publishedDate = res.result.extras.find(m => m.key === 'issued')?.value || '';
         return { id: dataset.id, childId: s.__extras.subject_package_id, date: publishedDate, data: await fetchAndParseCsv(resource, dataset?.headers) };
@@ -54,10 +106,15 @@ export async function fetchData(datasets: InputJSON): Promise<FetchedData[]> {
         }
         const url = `https://${dataset.host}/api/action/package_show?id=${dataset.id}`;
         try {
-          const response = await fetch(url);
-          const res: Response<Package> = await response.json();
+          const res: Response<Package> = await withRequestSlot(async () => {
+            const response = await fetch(url);
+            return response.json();
+          });
 
           if (!res.success) {
+            // Datasets get withdrawn and renamed too, and that also ends in a
+            // layer that is short a few values for no visible reason.
+            console.warn(`Dataset ${dataset.id} is not available on ${dataset.host}: ${res.error.message}`);
             return null;
           }
 
@@ -68,19 +125,15 @@ export async function fetchData(datasets: InputJSON): Promise<FetchedData[]> {
             return series.filter(data => data !== undefined);
           }
 
-          const resource = res.result.resources.find(
-            r => r.id === dataset.resource_id,
-          );
+          const resource = selectResource(res.result.resources, dataset);
           if (resource) {
-            if (resource.url) {
-              resource.url = resource.url.replace(/^http:/, 'https:');
-            }
-            if (resource.format === 'CSV') {
-              const data: FetchedData = { id: dataset.id, data: await fetchAndParseCsv(resource.url, dataset?.headers) };
+            const resourceUrl = resource.url?.replace(/^http:/, 'https:');
+            if (isFormat(resource, 'CSV')) {
+              const data: FetchedData = { id: dataset.id, data: await fetchAndParseCsv(resourceUrl, dataset?.headers) };
               return [data];
             }
-            else if (['JSON', 'GeoJSON', 'SHP'].includes(resource.format)) {
-              const data: FetchedData = { id: dataset.id, data: await fetchAndParseJson(resource.url) };
+            else if (['JSON', 'GEOJSON', 'SHP'].some(format => isFormat(resource, format))) {
+              const data: FetchedData = { id: dataset.id, data: await fetchAndParseJson(resourceUrl) };
               return [data];
             }
           }
@@ -112,7 +165,7 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
       mappingDatasets = data;
     }
     else {
-      const baseDatasetId = datasets.mappings[0].source_db_id;
+      const baseDatasetId = datasets.mappings[0]!.source_db_id;
       if (datasets.options.type === 'series') {
       // case: series → multiple snapshots
         mappingDatasets = data.filter(d => d.id === baseDatasetId);
@@ -365,8 +418,10 @@ function reprojectGeoJSON(geojson: GeoJSON.FeatureCollection, fromProjection: st
       if (feature.geometry.type !== 'Point') {
         return feature;
       }
-
-      const [x, y] = feature.geometry.coordinates as [number, number];
+      const [x, y] = feature.geometry.coordinates;
+      if (x === undefined || y === undefined) {
+        return feature;
+      }
       const [lon, lat] = proj4(fromProjection, toProjection, [x, y]);
 
       const [normLon, normLat] = normalizePoint([lon, lat]);
@@ -402,8 +457,8 @@ function reprojectGeoJSON(geojson: GeoJSON.FeatureCollection, fromProjection: st
 }
 
 function csvToGeoJSONFromRow(row: Record<string, string>, latKey = 'lat', lonKey = 'lon'): GeoJSON.Feature | null {
-  const latitude = Number.parseFloat(row[latKey]);
-  const longitude = Number.parseFloat(row[lonKey]);
+  const latitude = Number.parseFloat(row[latKey] ?? '');
+  const longitude = Number.parseFloat(row[lonKey] ?? '');
 
   if (Number.isNaN(latitude) || Number.isNaN(longitude))
     return null;
@@ -425,8 +480,10 @@ function csvToGeoJSONFromRow(row: Record<string, string>, latKey = 'lat', lonKey
 export async function fetchSeriesUrlData(host: string, dataset: Relationship) {
   const url = `https://${host}/api/action/package_show?id=${dataset.__extras.subject_package_id}`;
   try {
-    const response = await fetch(url);
-    const res: Response<Package> = await response.json();
+    const res: Response<Package> = await withRequestSlot(async () => {
+      const response = await fetch(url);
+      return response.json();
+    });
     if (!res.success) {
       return null;
     }
@@ -447,8 +504,10 @@ export async function fetchSeriesUrlData(host: string, dataset: Relationship) {
 export async function fetchUrlData(dataset: Dataset) {
   const url = `https://${dataset.host}/api/action/package_show?id=${dataset.id}`;
   try {
-    const response = await fetch(url);
-    const res: Response<Package> = await response.json();
+    const res: Response<Package> = await withRequestSlot(async () => {
+      const response = await fetch(url);
+      return response.json();
+    });
     if (!res.success) {
       return null;
     }
