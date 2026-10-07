@@ -20,5 +20,6 @@
   "notEnoughHistory": "Zu wenig Vergleichsdaten",
   "notCompared": "Nicht verglichen",
   "noReadingInMonth": "Keine Messung im {month}",
-  "lastReading": "letzte Messung: {month}"
+  "lastReading": "letzte Messung: {month}",
+  "notInSnapshot": "Im Datenstand vom {date} nicht enthalten. Angezeigt wird der zuletzt gesehene Stand."
 }

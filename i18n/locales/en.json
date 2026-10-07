@@ -20,5 +20,6 @@
   "notEnoughHistory": "Too little history",
   "notCompared": "Not compared",
   "noReadingInMonth": "No reading in {month}",
-  "lastReading": "last reading: {month}"
+  "lastReading": "last reading: {month}",
+  "notInSnapshot": "Not included in the data from {date}. Showing it as last seen."
 }

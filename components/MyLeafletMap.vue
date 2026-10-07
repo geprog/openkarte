@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import L, { Control } from 'leaflet';
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, toRaw, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
@@ -14,6 +14,8 @@ const props = defineProps<{
   // The map zooms to the data whenever this changes, i.e. when another layer
   // is picked, but not when the slider swaps the data of the same layer.
   layerKey?: string | null
+  // Highlighted on the map, also after the slider has swapped the data.
+  selectedFeature?: GeoJSON.Feature | null
 }>();
 
 const emit = defineEmits<{
@@ -27,8 +29,9 @@ const NO_VALUE_SWATCH_STYLE = `border:2px dashed ${NO_VALUE_COLOR}; box-sizing:b
 
 const { t } = useI18n();
 
-let selectedMarker: L.Layer | null = null;
+let highlightedMarker: L.CircleMarker | null = null;
 const originalMarkerStyleMap = new Map<L.Layer, L.PathOptions>();
+const layerByFeature = new Map<GeoJSON.Feature, L.Layer>();
 let legendControl: L.Control | null = null;
 const geoJsonLayers: L.GeoJSON[] = [];
 
@@ -157,6 +160,8 @@ function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
 
   const colorMap = generateLabels(data);
   originalMarkerStyleMap.clear();
+  layerByFeature.clear();
+  highlightedMarker = null;
 
   data.features.forEach((feature) => {
     const legendOption = feature.properties?.options?.legend_option;
@@ -198,22 +203,8 @@ function renderMarkers(data: GeoJSON.FeatureCollection | undefined) {
         return marker;
       },
       onEachFeature: (feature, layer) => {
+        layerByFeature.set(toRaw(feature), layer);
         layer.on('click', () => {
-          if (selectedMarker instanceof L.CircleMarker && originalMarkerStyleMap.has(selectedMarker)) {
-            selectedMarker.setStyle(originalMarkerStyleMap.get(selectedMarker)!);
-          }
-
-          if (layer instanceof L.CircleMarker) {
-            layer.setStyle({
-              radius: 10,
-              weight: 3,
-              color: '#0f172b',
-              fillColor: '#0f172b',
-              fillOpacity: 1,
-            });
-          }
-
-          selectedMarker = layer;
           // eslint-disable-next-line vue/custom-event-name-casing
           emit('marker-click', feature);
         });
@@ -234,10 +225,21 @@ function fitToData() {
   }
 }
 
-function resetSelectedMarker() {
-  if (selectedMarker instanceof L.Path && originalMarkerStyleMap.has(selectedMarker)) {
-    selectedMarker.setStyle(originalMarkerStyleMap.get(selectedMarker)!);
-    selectedMarker = null;
+function highlightSelectedFeature() {
+  if (highlightedMarker) {
+    highlightedMarker.setStyle(originalMarkerStyleMap.get(highlightedMarker)!);
+    highlightedMarker = null;
+  }
+  const layer = props.selectedFeature ? layerByFeature.get(toRaw(props.selectedFeature)) : undefined;
+  if (layer instanceof L.CircleMarker) {
+    layer.setStyle({
+      radius: 10,
+      weight: 3,
+      color: '#0f172b',
+      fillColor: '#0f172b',
+      fillOpacity: 1,
+    });
+    highlightedMarker = layer;
   }
 }
 
@@ -256,7 +258,6 @@ function clearLegend() {
 }
 
 defineExpose({
-  resetSelectedMarker,
   invalidateMapSize,
 });
 
@@ -288,10 +289,13 @@ watch(() => props.fetchedData, (newData) => {
     clearMarkers();
     clearLegend();
     renderMarkers(newData);
+    highlightSelectedFeature();
     if (fittedLayerKey !== props.layerKey) {
       fitToData();
       fittedLayerKey = props.layerKey;
     }
   }
 }, { immediate: true });
+
+watch(() => props.selectedFeature, highlightSelectedFeature);
 </script>

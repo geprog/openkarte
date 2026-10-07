@@ -87,14 +87,14 @@
           <LoadingSpinner />
         </div>
 
-        <MyLeafletMap ref="leafletMapRef" class="flex-grow" :fetched-data="fetchedData" :layer-key="feature" @marker-click="selectedItem = $event" />
+        <MyLeafletMap ref="leafletMapRef" class="flex-grow" :fetched-data="fetchedData" :layer-key="feature" :selected-feature="selectedItem" @marker-click="selectedItem = $event" />
         <Slider
           v-if="isDataSeries && dateOptions" v-model="selectedIndex"
           :date-options="dateOptions" :is-small-screen="isSmallScreen"
         />
         <PopupInfo
           v-if="selectedItem?.properties?.options?.display_option === 'popup'" :selected-item="selectedItem"
-          @close="selectedItem = null" @marker-reset="onMarkerReset"
+          :missing-in-date="selectedItemMissing ? selectedDate : undefined" @close="selectedItem = null"
         />
         <div
           v-if="selectedItem?.properties?.options?.display_option === 'line chart'"
@@ -194,17 +194,53 @@ function setFeature(f: string) {
   router.push({ path: '', query: { feature: f } });
 }
 
+const MAX_MATCH_DISTANCE_METERS = 25;
+
+// Snapshots of a series are separate datasets without a shared feature id,
+// but a wind turbine or a bathing site stays where it is: the same feature is
+// the one at the same spot. Neighbours are hundreds of metres apart.
+function findAtSameLocation(feature: GeoJSON.Feature, collection: GeoJSON.FeatureCollection | null): GeoJSON.Feature | undefined {
+  if (feature.geometry?.type !== 'Point' || !collection) {
+    return undefined;
+  }
+  const [lon, lat] = feature.geometry.coordinates as [number, number];
+  const metersPerDegreeLon = 111320 * Math.cos(lat * Math.PI / 180);
+  let closest: GeoJSON.Feature | undefined;
+  let closestDistance = MAX_MATCH_DISTANCE_METERS;
+  for (const candidate of collection.features) {
+    if (candidate.geometry?.type !== 'Point') {
+      continue;
+    }
+    const [x, y] = candidate.geometry.coordinates as [number, number];
+    const distance = Math.hypot((x - lon) * metersPerDegreeLon, (y - lat) * 110540);
+    if (distance <= closestDistance) {
+      closest = candidate;
+      closestDistance = distance;
+    }
+  }
+  return closest;
+}
+
+// An open popup follows its feature into the newly selected snapshot. When
+// that snapshot does not contain the feature, the popup keeps showing it as
+// last seen and says so.
 watch(selectedIndex, (newIndex) => {
-  selectedItem.value = null;
   selectedDate.value = dateOptions[newIndex];
+  const open = selectedItem.value;
+  const openIndex = open && fetchedData.value ? fetchedData.value.features.indexOf(open) : -1;
   fetchedData.value = timelineData.value
     ? timelineSnapshot(timelineData.value, dateOptions[newIndex])
     : seriesData.value[newIndex] ?? null;
+  if (open) {
+    // Every month of a timeline lists the same features in the same order.
+    const match = timelineData.value ? fetchedData.value?.features[openIndex] : findAtSameLocation(open, fetchedData.value);
+    selectedItem.value = match ?? open;
+  }
 });
 
-function onMarkerReset() {
-  leafletMapRef.value?.resetSelectedMarker();
-}
+const selectedItemMissing = computed(() =>
+  !!selectedItem.value && !!fetchedData.value && !fetchedData.value.features.includes(selectedItem.value),
+);
 
 watch(feature, async (newval) => {
   if (newval) {
