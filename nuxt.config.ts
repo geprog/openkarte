@@ -2,7 +2,7 @@
 import process from 'node:process';
 
 export default defineNuxtConfig({
-  compatibilityDate: '2025-01-27',
+  compatibilityDate: '2026-10-07',
   devtools: { enabled: true },
   telemetry: false,
   ssr: false,
@@ -31,8 +31,5 @@ export default defineNuxtConfig({
     ],
     strategy: 'no_prefix',
     defaultLocale: 'en',
-    bundle: {
-      optimizeTranslationDirective: false, // recommend to disable. see https://github.com/nuxt-modules/i18n/issues/3238#issuecomment-2672492536
-    },
   },
 });

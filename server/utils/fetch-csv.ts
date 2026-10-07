@@ -5,9 +5,9 @@ function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-type CsvAttempt =
-  | { ok: true, data: Uint8Array }
-  | { ok: false, status: number, statusText: string };
+type CsvAttempt
+  = | { ok: true, data: Uint8Array }
+    | { ok: false, status: number, statusText: string };
 
 export async function fetchCsvFromUrl(url: string, retries = 3, delay = 1000): Promise<Uint8Array> {
   if (!url) {

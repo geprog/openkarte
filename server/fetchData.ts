@@ -158,7 +158,7 @@ function isGeoJSON(data: Record<string, string> | GeoJSON.Feature): data is GeoJ
 
 export async function fetchMappings(data: FetchedData[], datasets: InputJSON): Promise<FetchedDataArray> {
   try {
-    const baseDatasetId = datasets.mappings[0].source_db_id;
+    const baseDatasetId = datasets.mappings[0]?.source_db_id;
     let mappingDatasets: FetchedData[] = [];
 
     if (datasets.options.type === 'series') {
@@ -364,6 +364,9 @@ function reprojectGeoJSON<G extends GeoJSON.Geometry, P>(geojson: GeoJSON.Featur
         return feature;
       }
       const [x, y] = feature.geometry.coordinates;
+      if (x === undefined || y === undefined) {
+        return feature;
+      }
       const [lon, lat] = proj4(fromProjection, toProjection, [x, y]);
 
       let newBbox = feature.bbox;
@@ -387,8 +390,8 @@ function reprojectGeoJSON<G extends GeoJSON.Geometry, P>(geojson: GeoJSON.Featur
 }
 
 function csvToGeoJSONFromRow(row: Record<string, string>, latKey = 'lat', lonKey = 'lon'): GeoJSON.Feature | null {
-  const latitude = Number.parseFloat(row[latKey]);
-  const longitude = Number.parseFloat(row[lonKey]);
+  const latitude = Number.parseFloat(row[latKey] ?? '');
+  const longitude = Number.parseFloat(row[lonKey] ?? '');
 
   if (Number.isNaN(latitude) || Number.isNaN(longitude))
     return null;
