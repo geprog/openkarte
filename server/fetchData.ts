@@ -167,7 +167,7 @@ export async function fetchMappings(data: FetchedData[], datasets: InputJSON): P
     else {
       const baseDatasetId = datasets.mappings[0]!.source_db_id;
       if (datasets.options.type === 'series') {
-      // case: series → multiple snapshots
+        // case: series → multiple snapshots
         mappingDatasets = data.filter(d => d.id === baseDatasetId);
       }
       else {
