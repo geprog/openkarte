@@ -8,3 +8,6 @@ allowBuilds:
 
 saveExact: true
 minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - nitropack@2.13.6
+  - unrouting@0.3.2
