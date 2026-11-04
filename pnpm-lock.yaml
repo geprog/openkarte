@@ -171,7 +171,7 @@ importers:
         version: 2.2.0(vue@3.5.44(typescript@5.9.3))
       '@nuxt/ui':
         specifier: 4.11.3
-        version: 4.11.3(86c4f12ff2e09a3d58db417d444ff2d5)
+        version: 4.11.3(0e74ed6d5d7879209be37b923614b74b)
       '@nuxtjs/i18n':
         specifier: 10.6.0
         version: 10.6.0(@netlify/blobs@8.2.0)(@nuxt/schema@4.6.3)(db0@0.3.4)(dotenv@17.4.2)(esbuild@0.28.2)(eslint@10.12.0(jiti@2.7.0)(supports-color@10.0.0))(giget@3.3.1)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(rolldown@1.2.15)(rollup@4.67.4)(supports-color@10.0.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.8.1))(vue@3.5.44(typescript@5.9.3))
@@ -209,8 +209,8 @@ importers:
         specifier: 5.3.4
         version: 5.3.4(chart.js@4.5.1)(vue@3.5.44(typescript@5.9.3))
       zod:
-        specifier: 4.6.5
-        version: 4.6.5
+        specifier: 4.6.6
+        version: 4.6.6
     devDependencies:
       '@antfu/eslint-config':
         specifier: 9.5.1
@@ -6983,8 +6983,8 @@ packages:
     resolution: {integrity: sha512-dSvYKdvLsAHCDqPOhIwk/q5CvuWtTB3Dgpoe0uVEFjTzIOAmsQpprX25InCvrvJsirEbu1OHyy67n/kAj1Sw/w==}
     engines: {node: '>=18'}
 
-  zod@4.6.5:
-    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
+  zod@4.6.6:
+    resolution: {integrity: sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -8627,7 +8627,7 @@ snapshots:
       rc9: 3.1.0
       std-env: 4.3.0
 
-  '@nuxt/ui@4.11.3(86c4f12ff2e09a3d58db417d444ff2d5)':
+  '@nuxt/ui@4.11.3(0e74ed6d5d7879209be37b923614b74b)':
     dependencies:
       '@floating-ui/dom': 1.8.0
       '@iconify/vue': 5.0.3(vue@3.5.44(typescript@5.9.3))
@@ -8697,7 +8697,7 @@ snapshots:
       vue-component-type-helpers: 3.3.12
     optionalDependencies:
       vue-router: 5.3.1(@vue/compiler-sfc@3.5.44)(esbuild@0.28.2)(rolldown@1.2.15)(rollup@4.67.4)(vite@8.3.5(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.8.1))(vue@3.5.44(typescript@5.9.3))
-      zod: 4.6.5
+      zod: 4.6.6
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -14332,6 +14332,6 @@ snapshots:
       normalize-path: 3.0.0
       readable-stream: 4.6.0
 
-  zod@4.6.5: {}
+  zod@4.6.6: {}
 
   zwitch@2.0.4: {}
