@@ -7,6 +7,9 @@ allowBuilds:
   vue-demi: false
 
 saveExact: true
-minimumReleaseAge: 1440
+minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - nitropack@2.13.6
+  - unrouting@0.3.2
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 262980

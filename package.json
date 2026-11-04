@@ -24,14 +24,14 @@
     "chroma-js": "3.2.0",
     "leaflet": "1.9.4",
     "leaflet-defaulticon-compatibility": "0.1.2",
-    "nuxt": "4.6.2",
+    "nuxt": "4.6.3",
     "papaparse": "5.7.0",
     "proj4": "2.22.0",
     "proj4js-definitions": "0.1.0",
     "shpjs": "6.2.0",
     "tailwindcss": "4.3.3",
     "vue-chartjs": "5.3.4",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@antfu/eslint-config": "9.5.1",
