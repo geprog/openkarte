@@ -7,3 +7,4 @@ allowBuilds:
   vue-demi: false
 
 saveExact: true
+minimumReleaseAge: 4320
