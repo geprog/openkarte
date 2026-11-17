@@ -11,5 +11,7 @@ minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
   - nitropack@2.13.6
   - unrouting@0.3.2
+  # Renovate security update: nuxt@4.6.4
+  - nuxt@4.6.4
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 262980
